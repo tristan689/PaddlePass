@@ -1,5 +1,6 @@
 import { ActionForm } from '@/components/ui/ActionForm'
 import { SubmitButton } from '@/components/ui/SubmitButton'
+import { requireStaff } from '@/lib/auth/require-staff'
 import { listBlockedDates } from '@/lib/data/admin'
 import { formatDateLong, toManilaDate, todayInManila } from '@/lib/domain/time'
 import { addClosure, removeClosure } from './actions'
@@ -11,6 +12,7 @@ export const dynamic = 'force-dynamic'
  * published on the calendar; the internal note never leaves this page.
  */
 export default async function ClosuresPage() {
+  await requireStaff() // pages render in parallel with the layout's gate
   const today = todayInManila()
   const closures = await listBlockedDates(today)
 

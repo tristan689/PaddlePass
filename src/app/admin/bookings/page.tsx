@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { StatusBadge } from '@/components/admin/StatusBadge'
+import { requireStaff } from '@/lib/auth/require-staff'
 import { LOGBOOK_PAGE_SIZE, queryLogbook } from '@/lib/data/admin'
 import { logbookQuery, parseLogbookFilters, parsePage } from '@/lib/data/logbook-filters'
 import type { LogbookRow } from '@/lib/data/types'
@@ -17,6 +18,7 @@ const METHOD_LABEL = { cash: 'Cash', gcash: 'GCash' } as const
  * search can be shared and the CSV export sees exactly what the screen shows.
  */
 export default async function LogbookPage({ searchParams }: PageProps<'/admin/bookings'>) {
+  await requireStaff() // pages render in parallel with the layout's gate
   const params = await searchParams
   const filters = parseLogbookFilters(params)
   const page = parsePage(params)

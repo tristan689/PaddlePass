@@ -122,8 +122,9 @@ src/
     data/                server-only reads through the SSR client (RLS applies)
     auth/                requireStaff / requireOwner, sign-in actions, safe redirect
     supabase/            server / browser / admin clients, env, proxy session refresh
+  proxy.ts               session refresh + /admin redirect (UX only — not the security boundary).
+                         Must live in src/ — at the project root Next ignores it.
 supabase/migrations/     the schema, in order; every rule is commented where it lives
-proxy.ts                 session refresh + /admin redirect (UX only — not the security boundary)
 ```
 
 ### Rules worth knowing before you change anything

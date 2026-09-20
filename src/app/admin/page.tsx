@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { StatusBadge } from '@/components/admin/StatusBadge'
 import { ActionForm } from '@/components/ui/ActionForm'
 import { SubmitButton } from '@/components/ui/SubmitButton'
+import { requireStaff } from '@/lib/auth/require-staff'
 import {
   getDashboardMetrics,
   listBookingsOn,
@@ -32,6 +33,10 @@ export const dynamic = 'force-dynamic'
  * that needs a reason or an amount links through to the booking.
  */
 export default async function AdminHome() {
+  // The layout gates too, but layouts and pages render in parallel: without this
+  // the queries below would run for a non-staff session and fail against RLS.
+  await requireStaff()
+
   const today = todayInManila()
   const month = monthOf(today)
   const monthStart = firstOfMonth(month)

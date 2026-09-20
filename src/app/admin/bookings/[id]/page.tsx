@@ -4,6 +4,7 @@ import { PaymentForm } from '@/components/admin/PaymentForm'
 import { StatusBadge } from '@/components/admin/StatusBadge'
 import { ActionForm } from '@/components/ui/ActionForm'
 import { SubmitButton } from '@/components/ui/SubmitButton'
+import { requireStaff } from '@/lib/auth/require-staff'
 import {
   getBookingById,
   getSettingsRow,
@@ -36,6 +37,7 @@ const KIND_LABEL = { down_payment: 'Down payment', full_payment: 'Full payment' 
  * so a stale tab that still shows "Approve" gets a clear sentence, not a mess.
  */
 export default async function BookingDetailPage({ params }: PageProps<'/admin/bookings/[id]'>) {
+  await requireStaff() // pages render in parallel with the layout's gate
   const { id } = await params
   const booking = await getBookingById(id)
   if (!booking) notFound()
