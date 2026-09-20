@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/*
+ * Status colour tokens.
+ *
+ * Defined once here and consumed only through src/lib/domain/status.ts, so the
+ * public calendar, the slot picker, the admin views and the printed logbook can
+ * never disagree about what yellow means.
+ *
+ * All three occupied fills sit at a similar lightness, which is what lets a single
+ * near-black text colour clear 4.5:1 on every one of them. Colour is never the only
+ * signal -- each state also carries a fill geometry, a glyph and a text label.
+ *
+ * Light-only by design for v1. The whole product hinges on grey / yellow / green
+ * reading correctly at a glance, and a second palette is a second chance to get
+ * that wrong for no benefit to a customer opening a link from Facebook.
+ */
+@theme {
+  --color-slot-free: #ffffff;
+  --color-slot-pending: #e2e8f0; /* slate-200 */
+  --color-slot-down: #fcd34d;    /* amber-300 */
+  --color-slot-paid: #6ee7b7;    /* emerald-300 */
+  --color-slot-closed: #f1f5f9;  /* slate-100 */
+  --color-slot-ink: #020617;     /* slate-950 -- text on every fill above */
+}
+
+:root {
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * Diagonal hatch for closed days. Carries the "unavailable" meaning with no colour
+ * at all, so it survives a greyscale print and colour-vision deficiency.
+ */
+.hatched {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgb(100 116 139 / 0.35) 3px,
+    rgb(100 116 139 / 0.35) 4px
+  );
+}
+
+/* Half-fill for "downpayment received": geometry doing the work colour also does. */
+.fill-half {
+  background-image: linear-gradient(
+    to top,
+    var(--color-slot-down) 0%,
+    var(--color-slot-down) 50%,
+    transparent 50%,
+    transparent 100%
+  );
+}
+
+/* Respect users who have asked the OS to calm things down. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
