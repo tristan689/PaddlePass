@@ -21,15 +21,17 @@ describe('safeNextPath', () => {
     expect(safeNextPath('/admin/<script>')).toBe(DEFAULT_AFTER_LOGIN)
   })
 
-  it('accepts the customer account area', () => {
+  it('accepts the customer account area and the calendar', () => {
     expect(safeNextPath('/account')).toBe('/account')
+    expect(safeNextPath('/')).toBe('/')
+    expect(safeNextPath('/?view=day&d=2026-09-28')).toBe('/?view=day&d=2026-09-28')
   })
 
-  it('rejects paths outside the admin and account areas', () => {
-    expect(safeNextPath('/')).toBe(DEFAULT_AFTER_LOGIN)
+  it('rejects other paths', () => {
     expect(safeNextPath('/adminx')).toBe(DEFAULT_AFTER_LOGIN)
     expect(safeNextPath('/accounts')).toBe(DEFAULT_AFTER_LOGIN)
     expect(safeNextPath('/book/2026-09-21')).toBe(DEFAULT_AFTER_LOGIN)
+    expect(safeNextPath('/?x="y"')).toBe(DEFAULT_AFTER_LOGIN)
   })
 
   it('takes the first value when the parameter was repeated', () => {

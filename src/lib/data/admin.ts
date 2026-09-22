@@ -222,3 +222,24 @@ export async function getSettingsRow(): Promise<SettingsRow> {
   if (error) fail('settings', error)
   return data as SettingsRow
 }
+
+// ---------------------------------------------------------------------------
+// Pre-approved staff emails (owner-only via RLS).
+// ---------------------------------------------------------------------------
+
+export interface AllowlistRow {
+  email: string
+  full_name: string | null
+  role: 'owner' | 'staff'
+  created_at: string
+}
+
+export async function listStaffAllowlist(): Promise<AllowlistRow[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('staff_allowlist')
+    .select('email, full_name, role, created_at')
+    .order('created_at')
+  if (error) fail('pre-approved emails', error)
+  return (data ?? []) as AllowlistRow[]
+}

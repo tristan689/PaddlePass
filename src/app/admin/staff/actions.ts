@@ -93,3 +93,66 @@ export async function setStaffRole(_prev: ActionState, formData: FormData): Prom
   refresh()
   return { ok: true, message: `Now ${parsed.data.role === 'owner' ? 'an owner' : 'staff'}.` }
 }
+
+// ---------------------------------------------------------------------------
+// Pre-approved emails: whoever signs in with one (Google or password) becomes
+// staff at that role. Adding an email also promotes a matching user who has
+// already signed in as a customer.
+// ---------------------------------------------------------------------------
+
+const allowEntry = z.object({
+  email: z.email('Enter a valid email address.'),
+  full_name: z.string().trim().max(80),
+  role: z.enum(['owner', 'staff']),
+})
+
+export async function allowStaffEmail(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const owner = await requireOwner()
+  const parsed = allowEntry.safeParse({
+    email: String(formData.get('email') ?? '').trim().toLowerCase(),
+    full_name: formData.get('full_name') ?? '',
+    role: formData.get('role'),
+  })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Check the details.' }
+  const { email, full_name, role } = parsed.data
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('staff_allowlist').insert({
+    email,
+    full_name: full_name || null,
+    role,
+    added_by: owner.id,
+  })
+  if (error) {
+    if (error.code === '23505') return { error: 'That email is already pre-approved.' }
+    console.error('allowStaffEmail failed', error)
+    return { error: 'Could not save. Please try again.' }
+  }
+
+  const { data: promoted } = await supabase.rpc('sync_staff_from_allowlist')
+
+  refresh()
+  return {
+    ok: true,
+    message:
+      Number(promoted) > 0
+        ? `${email} already had an account — they are staff now.`
+        : `${email} will become ${role === 'owner' ? 'an owner' : 'staff'} the first time they sign in.`,
+  }
+}
+
+export async function revokeStaffEmail(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireOwner()
+  const email = z.email().safeParse(String(formData.get('email') ?? '').trim().toLowerCase())
+  if (!email.success) return { error: 'Missing email.' }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('staff_allowlist').delete().eq('email', email.data)
+  if (error) {
+    console.error('revokeStaffEmail failed', error)
+    return { error: 'Could not remove. Please try again.' }
+  }
+
+  refresh()
+  return { ok: true, message: 'Removed. Anyone already signed in keeps their staff row until deactivated.' }
+}

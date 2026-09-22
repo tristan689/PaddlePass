@@ -13,15 +13,16 @@ export function messengerHref(page: string, text: string): string {
   return `https://m.me/${encodeURIComponent(handle)}?text=${encodeURIComponent(text)}`
 }
 
+/** Who is booking: a signed-in player (name + account email) or a guest (name only). */
 export interface MessageCustomer {
   name: string
-  email: string
+  email?: string | null
 }
 
 /**
- * The prefilled message for a chosen slot. A signed-in customer signs it with
- * their name and account email, which is what lets staff tag the booking to
- * their account when they enter it.
+ * The prefilled message for a chosen slot, signed with the booker's name -- and
+ * their account email when they are signed in, which is what lets staff tag the
+ * booking to their account when they enter it.
  */
 export function bookingMessage(
   date: ManilaDate,
@@ -34,5 +35,9 @@ export function bookingMessage(
     `Hi! I'm booking the court on ${formatDateLong(date)}, ` +
     `${formatHourRange(startHour, endHour)} (${hours} hour${hours === 1 ? '' : 's'}). ` +
     `Please confirm — thank you!`
-  return customer ? `${body}\n— ${customer.name} (${customer.email})` : body
+
+  const name = customer?.name.trim()
+  if (!name) return body
+  const email = customer?.email?.trim()
+  return `${body}\n— ${name}${email ? ` (${email})` : ''}`
 }

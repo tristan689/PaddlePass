@@ -41,4 +41,12 @@ describe('bookingMessage', () => {
     })
     expect(text.endsWith('— Juan dela Cruz (juan@example.com)')).toBe(true)
   })
+
+  it('signs with the name alone for a guest, and not at all for a blank name', () => {
+    const guest = bookingMessage(toManilaDate('2026-09-28'), 15, 16, { name: ' Ana ' })
+    expect(guest.endsWith('— Ana')).toBe(true)
+    const blank = bookingMessage(toManilaDate('2026-09-28'), 15, 16, { name: '   ' })
+    expect(blank).not.toContain('—\n')
+    expect(blank.endsWith('thank you!')).toBe(true)
+  })
 })

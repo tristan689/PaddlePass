@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { GoogleSignIn } from '@/components/auth/GoogleSignIn'
 import {
   blockerMessage,
   canStartAt,
@@ -51,6 +52,20 @@ export function TimePills({
 }: TimePillsProps) {
   const [start, setStart] = useState<number | null>(null)
   const [end, setEnd] = useState<number | null>(null)
+  // Guest flow: "Book as guest" reveals a name field; the name is remembered on
+  // this device so a regular does not retype it every visit.
+  const [guestMode, setGuestMode] = useState(false)
+  const [guestName, setGuestName] = useState('')
+
+  function startGuest() {
+    try {
+      const saved = localStorage.getItem(GUEST_NAME_KEY)
+      if (saved) setGuestName(saved)
+    } catch {
+      // Storage blocked (private mode): they simply type it.
+    }
+    setGuestMode(true)
+  }
   const gridRef = useRef<HTMLDivElement>(null)
   const drag = useRef<{ anchor: number; moved: boolean; last: number } | null>(null)
   const swallowNextClick = useRef(false)
@@ -214,20 +229,79 @@ export function TimePills({
                 </span>
               </p>
             )}
-            <a
-              href={messengerHref(facebookPage, bookingMessage(date, start, end, customer))}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-[#0084FF] px-4 py-3 text-base font-semibold text-white hover:bg-[#0074e0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0084FF]"
-            >
-              <MessengerIcon />
-              Message us to book {formatHourRange(start, end)}
-            </a>
+            {customer ? (
+              <MessengerButton
+                href={messengerHref(facebookPage, bookingMessage(date, start, end, customer))}
+                range={formatHourRange(start, end)}
+                as={customer.name}
+              />
+            ) : guestMode ? (
+              <div className="mt-3 space-y-2 animate-rise">
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-800">Your name</span>
+                  <input
+                    value={guestName}
+                    onChange={(e) => {
+                      setGuestName(e.target.value)
+                      try {
+                        localStorage.setItem(GUEST_NAME_KEY, e.target.value)
+                      } catch {
+                        // fine without it
+                      }
+                    }}
+                    autoFocus
+                    autoComplete="name"
+                    maxLength={80}
+                    placeholder="So we know who's booking"
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </label>
+                {guestName.trim().length >= 2 ? (
+                  <MessengerButton
+                    href={messengerHref(facebookPage, bookingMessage(date, start, end, { name: guestName }))}
+                    range={formatHourRange(start, end)}
+                    as={guestName.trim()}
+                  />
+                ) : (
+                  <p className="text-xs text-slate-500">Enter your name to continue to Messenger.</p>
+                )}
+              </div>
+            ) : (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 animate-rise">
+                <button
+                  type="button"
+                  onClick={startGuest}
+                  className="flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                >
+                  Book as guest
+                </button>
+                <GoogleSignIn next={`/?view=day&d=${date}`} label="Sign in with Google" tone="compact" />
+              </div>
+            )}
           </>
         ) : (
           <p className="text-slate-600">Pick your hours above, then message us.</p>
         )}
       </section>
+    </div>
+  )
+}
+
+const GUEST_NAME_KEY = 'paddlepass.guestName'
+
+function MessengerButton({ href, range, as }: { href: string; range: string; as: string }) {
+  return (
+    <div className="mt-3 animate-rise">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0084FF] px-4 py-3 text-base font-semibold text-white hover:bg-[#0074e0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0084FF]"
+      >
+        <MessengerIcon />
+        Message us to book {range}
+      </a>
+      <p className="mt-1.5 text-center text-xs text-slate-500">Booking as {as}</p>
     </div>
   )
 }

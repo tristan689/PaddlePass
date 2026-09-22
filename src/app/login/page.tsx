@@ -6,7 +6,7 @@ import { LoginForm } from '@/components/auth/LoginForm'
 import { safeNextPath } from '@/lib/auth/redirect'
 import { getViewer } from '@/lib/auth/viewer'
 
-export const metadata: Metadata = { title: 'Sign in — Undefeated Pickleball' }
+export const metadata: Metadata = { title: 'Sign in or sign up — Undefeated Pickleball' }
 export const dynamic = 'force-dynamic'
 
 /**
@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
 
   const viewer = await getViewer()
   if (viewer?.kind === 'staff') redirect(next.startsWith('/admin') ? next : '/admin')
-  if (viewer?.kind === 'customer') redirect('/account')
+  if (viewer?.kind === 'customer') redirect(next.startsWith('/admin') ? '/account' : next)
 
   return (
     <main className="flex flex-1 items-start justify-center bg-slate-50 px-4 py-10">
@@ -33,7 +33,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
         </header>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-lg font-bold tracking-tight text-slate-900">Sign in</h1>
+          <h1 className="text-lg font-bold tracking-tight text-slate-900">Sign in or sign up</h1>
 
           <div className="mt-4">
             <LoginForm next={next} linkError={linkError} />
@@ -45,9 +45,10 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
             <span className="h-px flex-1 bg-slate-200" />
           </div>
 
-          <GoogleSignIn next="/account" />
+          <GoogleSignIn next={next.startsWith('/admin') ? '/account' : next} />
           <p className="mt-2 text-center text-xs text-slate-500">
-            Players: keep your bookings in one place. We only use your name and email.
+            New here? Continuing with Google creates your account — we only use your name and
+            email. Staff emails are recognised automatically.
           </p>
         </section>
 

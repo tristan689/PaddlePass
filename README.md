@@ -10,8 +10,10 @@ Court booking for **Undefeated Pickleball** (Undefeated Fitness Center, Manila).
    <hours>…" already typed. Grey = being booked, **yellow = reserved** (confirmed, no
    downpayment yet), **green = booked** (downpayment or paid). A "Find us" section embeds
    the map with directions / Google Maps / Business Profile links.
-   Players can optionally **sign in with Google**; their message is then signed with their
-   name and email, and `/account` lists the bookings staff have filed under that email.
+   Before the Messenger button appears the visitor either **books as a guest** (asked for a
+   name, remembered on the device) or **signs in with Google**; the message is signed with
+   the name — plus the account email when signed in, which staff use to file the booking so
+   it shows on `/account`.
 2. **Staff** agree the booking in the chat, sign in at `/login` (username + password), and
    record it in the **admin**: new booking → record the GCash/cash payment → copy the
    customer's status link into the chat. Reschedules, arrivals, no-shows and the logbook
@@ -76,9 +78,14 @@ Further staff are invited from **Staff** in the admin (real email → they set a
 from the link), or created with the same script. Owners can change settings and manage
 the roster; staff can take bookings and payments.
 
-Only users created **with a `role` in their metadata** (invites, the script) become
-staff. A user added from the Supabase dashboard without metadata, or anyone who signs in
-with Google, is a customer — by design, since customers can now sign in.
+Who becomes staff on sign-up: users created **with a `role` in their metadata** (invites,
+the script), and anyone whose email is on the **pre-approved list** (`staff_allowlist`,
+managed on **Staff → Pre-approve an email**). Everyone else — a dashboard-created user
+without metadata, a Google sign-in — is a customer. Pre-approval is how a Google account
+becomes an admin: list the email, and their first Google sign-in creates the staff row
+(or promotes them on the spot if they already signed in as a customer).
+
+The super admin is `tristandeguzman52@gmail.com` (role `owner`, pre-approved and created).
 
 ### 3b. Customer sign-in (Google)
 
