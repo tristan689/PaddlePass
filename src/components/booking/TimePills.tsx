@@ -127,12 +127,22 @@ export function TimePills({
   const ready = start !== null && end !== null
   const hours = ready ? end - start : 0
 
+  // The hour right after the selection, if it can legally be added. It gets the
+  // nudge animation and is named in the hint, so "you can make this longer" is
+  // shown rather than explained.
+  const nextHour =
+    ready && isSelectableEnd(rangeLimitsFrom(slots, start, minHours, maxHours), start, end + 1)
+      ? end
+      : null
+
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-900">Pick your hours</h2>
-          <p className="text-xs text-slate-500">Tap, tap again to extend, or drag.</p>
+          <p className="text-xs text-slate-500">
+            {ready ? 'Tap the next hour to extend, or drag.' : 'Tap an hour, or drag across several.'}
+          </p>
         </div>
 
         <div
@@ -153,15 +163,34 @@ export function TimePills({
               selected={ready && slot.hour >= start && slot.hour < end}
               isStart={slot.hour === start}
               startable={slot.state === 'free' && startable(slot.hour)}
+              nudge={slot.hour === nextHour}
               onTap={() => tap(slot.hour)}
             />
           ))}
         </div>
 
-        <p className="mt-3 text-xs text-slate-500">
-          Bookings are {minHours === maxHours ? `${minHours}` : `${minHours}–${maxHours}`} hour
-          {maxHours === 1 ? '' : 's'}. Tap your first hour again to clear.
-        </p>
+        {ready ? (
+          // Keyed on the selection so the hint re-animates each time it changes.
+          <p
+            key={`${start}-${end}`}
+            className="mt-3 flex items-center gap-1.5 text-xs text-slate-600 animate-rise"
+          >
+            <span aria-hidden="true" className="text-base leading-none">↔</span>
+            {nextHour !== null ? (
+              <>
+                Adjust your time: tap <strong>{pillLabel(nextHour)}</strong> to extend, or tap{' '}
+                <strong>{pillLabel(start)}</strong> again to clear.
+              </>
+            ) : (
+              <>That&apos;s as long as this slot can go. Tap <strong>{pillLabel(start)}</strong> again to clear.</>
+            )}
+          </p>
+        ) : (
+          <p className="mt-3 text-xs text-slate-500">
+            Bookings are {minHours === maxHours ? `${minHours}` : `${minHours}–${maxHours}`} hour
+            {maxHours === 1 ? '' : 's'}. Each pill is one hour.
+          </p>
+        )}
       </section>
 
       <section
@@ -203,17 +232,25 @@ export function TimePills({
   )
 }
 
+/** `15` -> `"3 – 4 PM"`, `23` -> `"11 PM – 12 AM"`: the hour block a pill stands for. */
+function pillLabel(hour: number): string {
+  return formatHourRange(hour, hour + 1).replace(/:00/g, '')
+}
+
 function Pill({
   slot,
   selected,
   isStart,
   startable,
+  nudge,
   onTap,
 }: {
   slot: Slot
   selected: boolean
   isStart: boolean
   startable: boolean
+  /** Breathe a ring for a moment: this is the hour that would extend the booking. */
+  nudge: boolean
   onTap: () => void
 }) {
   const free = slot.state === 'free'
@@ -231,7 +268,7 @@ function Pill({
   }
 
   const spoken = free
-    ? `${formatHour(slot.hour)}${selected ? (isStart ? ', start of your booking' : ', in your booking') : ', open'}`
+    ? `${pillLabel(slot.hour)}${selected ? (isStart ? ', start of your booking' : ', in your booking') : ', open'}`
     : `${formatHour(slot.hour)}, ${display.description}`
 
   return (
@@ -243,9 +280,11 @@ function Pill({
       aria-label={spoken}
       title={free ? undefined : blockerMessage(slot.state)}
       onClick={onTap}
-      className={`flex min-h-12 flex-col items-center justify-center rounded-full border px-3 py-2 text-sm font-semibold leading-tight transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed ${look}`}
+      className={`flex min-h-12 flex-col items-center justify-center rounded-full border px-3 py-2 text-sm font-semibold leading-tight transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed ${look} ${
+        nudge ? 'animate-nudge border-slate-900' : ''
+      }`}
     >
-      <span>{formatHour(slot.hour).replace(':00', '')}</span>
+      <span>{pillLabel(slot.hour)}</span>
       {!free && (
         <span aria-hidden="true" className="text-[10px] font-medium opacity-80">
           {slot.state === 'past' ? 'past' : display.label}

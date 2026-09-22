@@ -16,6 +16,35 @@
  * that wrong for no benefit to a customer opening a link from Facebook.
  */
 @theme {
+  /*
+   * Motion for the hour picker: a ring that breathes three times on the next
+   * extendable hour, and a hint that rises in. Both stop on their own, and the
+   * prefers-reduced-motion block below flattens them to nothing.
+   */
+  --animate-nudge: nudge 1.4s ease-in-out 3;
+  --animate-rise: rise 0.35s ease-out both;
+
+  @keyframes nudge {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgb(15 23 42 / 0);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgb(15 23 42 / 0.18);
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   --color-slot-free: #ffffff;
   --color-slot-pending: #e2e8f0; /* slate-200 */
   --color-slot-down: #fcd34d;    /* amber-300 */
