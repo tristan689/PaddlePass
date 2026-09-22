@@ -67,8 +67,14 @@ export function AvailabilityBar({
   )
 }
 
+/** Every hour already gone -- an earlier date, or today after closing. */
+export function isPastDay(day: DayAvailability): boolean {
+  return day.slots.length > 0 && day.slots.every((slot) => slot.state === 'past')
+}
+
 function summarise(day: DayAvailability): string {
   if (day.closed) return `Closed: ${day.closedReason ?? 'not open'}`
+  if (isPastDay(day)) return 'Past'
   if (day.freeHoursCount === 0) return 'Fully booked'
   return `${day.freeHoursCount} of ${day.openHoursCount} hours open`
 }
@@ -79,6 +85,9 @@ export function availabilityCaption(day: DayAvailability): {
   tone: 'open' | 'busy' | 'full' | 'closed'
 } {
   if (day.closed) return { text: displayFor('closed').label, tone: 'closed' }
+  // A day that has simply gone by must not read as "fully booked" -- that tells a
+  // customer the court is in higher demand than it is.
+  if (isPastDay(day)) return { text: displayFor('past').label, tone: 'closed' }
   if (day.freeHoursCount === 0) return { text: 'FULL', tone: 'full' }
   if (day.freeHoursCount === day.openHoursCount)
     return { text: `${day.openHoursCount}h open`, tone: 'open' }

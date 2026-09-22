@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { DayAvailability } from '@/lib/domain/availability'
 import { formatDateLong } from '@/lib/domain/time'
-import { AvailabilityBar } from './AvailabilityBar'
+import { AvailabilityBar, isPastDay } from './AvailabilityBar'
 
 const WEEKDAY_SHORT = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
@@ -42,15 +42,18 @@ export function DateStrip({
 function DateChip({ day }: { day: DayAvailability }) {
   const dayNumber = Number(day.date.slice(8, 10))
   const weekday = WEEKDAY_SHORT[new Date(`${day.date}T00:00:00Z`).getUTCDay()]
+  const past = isPastDay(day)
   const bookable = !day.closed && day.freeHoursCount > 0
 
   // One full sentence for screen readers; the visual chip is abbreviated.
   const label = `${formatDateLong(day.date)}. ${
     day.closed
       ? (day.closedReason ?? 'Closed')
-      : day.freeHoursCount === 0
-        ? 'Fully booked'
-        : `${day.freeHoursCount} of ${day.openHoursCount} hours open`
+      : past
+        ? 'Past'
+        : day.freeHoursCount === 0
+          ? 'Fully booked'
+          : `${day.freeHoursCount} of ${day.openHoursCount} hours open`
   }`
 
   const body = (
@@ -61,7 +64,7 @@ function DateChip({ day }: { day: DayAvailability }) {
       <span className="text-lg font-bold leading-tight text-slate-900">{dayNumber}</span>
       <AvailabilityBar day={day} className="my-1 h-1 w-full rounded-full" />
       <span className="text-[10px] font-medium text-slate-600">
-        {day.closed ? '✕' : day.freeHoursCount === 0 ? 'FULL' : day.freeHoursCount}
+        {day.closed ? '✕' : past ? '–' : day.freeHoursCount === 0 ? 'FULL' : day.freeHoursCount}
       </span>
     </>
   )

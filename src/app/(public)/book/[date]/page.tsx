@@ -52,15 +52,18 @@ export default async function BookDayPage({ params }: PageProps<'/book/[date]'>)
       <header>
         <h1 className="text-xl font-bold tracking-tight text-slate-900">{heading}</h1>
         <p className="mt-1 text-sm text-slate-600">
-          {settings.courtName} · {settings.isConfigured ? 'Pick your hours below.' : ''}
+          {settings.courtName}
+          {settings.isConfigured && ' · Pick your hours below.'}
         </p>
       </header>
 
-      {!settings.isConfigured ? (
+      {!settings.isConfigured && (
         <Notice tone="warn" title="Online booking is not open yet.">
           Please message us on Facebook to book the court while we finish setting this up.
         </Notice>
-      ) : date < today ? (
+      )}
+
+      {date < today ? (
         <Notice tone="muted" title="That date has passed.">
           <Link href={backHref} className="font-semibold underline">
             Back to the calendar
@@ -96,6 +99,7 @@ export default async function BookDayPage({ params }: PageProps<'/book/[date]'>)
             paddleFeeCents={settings.paddleFeeCents}
             downpaymentCents={settings.downpaymentCents}
             holdMinutes={settings.holdMinutes}
+            acceptingRequests={settings.isConfigured}
           />
           <StatusLegend className="pt-1" />
         </>

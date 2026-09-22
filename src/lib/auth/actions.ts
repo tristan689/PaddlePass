@@ -58,10 +58,14 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   redirect(safeNextPath(formData.get('next')?.toString()))
 }
 
-export async function signOut(): Promise<void> {
+/**
+ * Sign out. Lands on /login by default; the public header passes `to=/` so a
+ * staffer who signs out from the calendar stays on the calendar.
+ */
+export async function signOut(formData?: FormData): Promise<void> {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect('/login')
+  redirect(formData?.get('to') === '/' ? '/' : '/login')
 }
 
 /**

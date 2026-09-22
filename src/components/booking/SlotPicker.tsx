@@ -26,6 +26,12 @@ export interface SlotPickerProps {
   paddleFeeCents: number
   downpaymentCents: number
   holdMinutes: number
+  /**
+   * False until the owner sets an hourly rate. The grid stays fully viewable so
+   * the interface can be seen and checked; only the price and the request form
+   * are withheld, because there is nothing honest to quote yet.
+   */
+  acceptingRequests?: boolean
 }
 
 const INITIAL: BookingFormState = {}
@@ -50,6 +56,7 @@ export function SlotPicker({
   paddleFeeCents,
   downpaymentCents,
   holdMinutes,
+  acceptingRequests = true,
 }: SlotPickerProps) {
   const [start, setStart] = useState<number | null>(null)
   const [end, setEnd] = useState<number | null>(null)
@@ -144,7 +151,15 @@ export function SlotPicker({
         aria-live="polite"
         className="rounded-lg border border-slate-200 bg-white p-4 text-sm"
       >
-        {ready ? (
+        {ready && !acceptingRequests ? (
+          <p className="font-semibold text-slate-900">
+            {dateLabel} · {formatHourRange(start!, end!)}
+            <span className="font-normal text-slate-500">
+              {' '}
+              · {hours} hour{hours === 1 ? '' : 's'}
+            </span>
+          </p>
+        ) : ready ? (
           <>
             <p className="font-semibold text-slate-900">
               {dateLabel} · {formatHourRange(start!, end!)}
@@ -180,91 +195,109 @@ export function SlotPicker({
             )}
           </>
         ) : (
-          <p className="text-slate-600">Pick a time above to see the price.</p>
+          <p className="text-slate-600">
+            {acceptingRequests ? 'Pick a time above to see the price.' : 'Pick a time above.'}
+          </p>
         )}
       </section>
 
-      <fieldset className="space-y-3">
-        <legend className="mb-1 text-xs font-semibold tracking-wider text-slate-500">
-          YOUR DETAILS
-        </legend>
+      {acceptingRequests ? (
+        <>
+          <fieldset className="space-y-3">
+            <legend className="mb-1 text-xs font-semibold tracking-wider text-slate-500">
+              YOUR DETAILS
+            </legend>
 
-        <Field label="Full name" name="customer_name" autoComplete="name" required maxLength={80} defaultValue={state.values?.customer_name} />
-        <Field
-          label="Mobile number"
-          name="contact"
-          type="tel"
-          autoComplete="tel"
-          inputMode="tel"
-          placeholder="09xx xxx xxxx"
-          required
-          maxLength={40}
-          defaultValue={state.values?.contact}
-        />
-        <Field
-          label="Facebook name"
-          name="facebook_name"
-          hint="Exactly as it appears on your profile, so we can find you on Messenger."
-          required
-          maxLength={80}
-          defaultValue={state.values?.facebook_name}
-        />
+            <Field
+              label="Full name"
+              name="customer_name"
+              autoComplete="name"
+              required
+              maxLength={80}
+              defaultValue={state.values?.customer_name}
+            />
+            <Field
+              label="Mobile number"
+              name="contact"
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="09xx xxx xxxx"
+              required
+              maxLength={40}
+              defaultValue={state.values?.contact}
+            />
+            <Field
+              label="Facebook name"
+              name="facebook_name"
+              hint="Exactly as it appears on your profile, so we can find you on Messenger."
+              required
+              maxLength={80}
+              defaultValue={state.values?.facebook_name}
+            />
 
-        {paddlesOwned > 0 && (
-          <label className="block">
-            <span className="text-sm font-medium text-slate-800">Rent paddles</span>
-            <select
-              name="paddle_count"
-              value={paddles}
-              onChange={(e) => setPaddles(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            {paddlesOwned > 0 && (
+              <label className="block">
+                <span className="text-sm font-medium text-slate-800">Rent paddles</span>
+                <select
+                  name="paddle_count"
+                  value={paddles}
+                  onChange={(e) => setPaddles(Number(e.target.value))}
+                  className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                >
+                  {Array.from({ length: paddlesOwned + 1 }, (_, n) => (
+                    <option key={n} value={n}>
+                      {n === 0
+                        ? 'No, we have our own'
+                        : `${n} paddle${n === 1 ? '' : 's'} · ${formatPesoCompact(n * paddleFeeCents)} flat`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-800">
+                Note <span className="font-normal text-slate-500">(optional)</span>
+              </span>
+              <textarea
+                name="note"
+                rows={2}
+                maxLength={500}
+                defaultValue={state.values?.note}
+                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              />
+            </label>
+          </fieldset>
+
+          {state.error && (
+            <div
+              role="alert"
+              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
             >
-              {Array.from({ length: paddlesOwned + 1 }, (_, n) => (
-                <option key={n} value={n}>
-                  {n === 0
-                    ? 'No, we have our own'
-                    : `${n} paddle${n === 1 ? '' : 's'} · ${formatPesoCompact(n * paddleFeeCents)} flat`}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        <label className="block">
-          <span className="text-sm font-medium text-slate-800">
-            Note <span className="font-normal text-slate-500">(optional)</span>
-          </span>
-          <textarea
-            name="note"
-            rows={2}
-            maxLength={500}
-            defaultValue={state.values?.note}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </label>
-      </fieldset>
-
-      {state.error && (
-        <div
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          <p>{state.error}</p>
-          {state.refresh && (
-            <a href={`/book/${date}`} className="mt-1 inline-block font-semibold underline">
-              Reload the latest availability
-            </a>
+              <p>{state.error}</p>
+              {state.refresh && (
+                <a href={`/book/${date}`} className="mt-1 inline-block font-semibold underline">
+                  Reload the latest availability
+                </a>
+              )}
+            </div>
           )}
-        </div>
+
+          <SubmitButton size="lg" disabled={!ready} pendingLabel="Sending your request…">
+            {ready ? `Request ${formatHourRange(start!, end!)}` : 'Pick a time to continue'}
+          </SubmitButton>
+
+          <p className="text-xs leading-relaxed text-slate-500">
+            This sends a request, not a confirmed booking. We will confirm on Facebook Messenger.
+          </p>
+        </>
+      ) : (
+        <p className="rounded-md border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
+          Requests are not being accepted online yet — please message us on Facebook. The times
+          shown are live and will be bookable here once pricing is set.
+        </p>
       )}
-
-      <SubmitButton size="lg" disabled={!ready} pendingLabel="Sending your request…">
-        {ready ? `Request ${formatHourRange(start!, end!)}` : 'Pick a time to continue'}
-      </SubmitButton>
-
-      <p className="text-xs leading-relaxed text-slate-500">
-        This sends a request, not a confirmed booking. We will confirm on Facebook Messenger.
-      </p>
     </form>
   )
 }
