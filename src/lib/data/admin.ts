@@ -243,3 +243,24 @@ export async function listStaffAllowlist(): Promise<AllowlistRow[]> {
   if (error) fail('pre-approved emails', error)
   return (data ?? []) as AllowlistRow[]
 }
+
+// ---------------------------------------------------------------------------
+// Members who joined a session (staff can read all participants and profiles).
+// ---------------------------------------------------------------------------
+
+export interface ParticipantRow {
+  profile_id: string
+  created_at: string
+  profile: { display_name: string; avatar_url: string | null } | null
+}
+
+export async function listParticipants(bookingId: string): Promise<ParticipantRow[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('booking_participants')
+    .select('profile_id, created_at, profile:profiles(display_name, avatar_url)')
+    .eq('booking_id', bookingId)
+    .order('created_at')
+  if (error) fail('participants', error)
+  return (data ?? []) as unknown as ParticipantRow[]
+}

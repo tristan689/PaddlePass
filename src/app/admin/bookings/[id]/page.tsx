@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { PaymentForm } from '@/components/admin/PaymentForm'
 import { StatusBadge } from '@/components/admin/StatusBadge'
 import { ActionForm } from '@/components/ui/ActionForm'
+import { Avatar } from '@/components/ui/Avatar'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { SubmitButton } from '@/components/ui/SubmitButton'
 import { requireStaff } from '@/lib/auth/require-staff'
@@ -10,6 +11,7 @@ import { siteUrl } from '@/lib/supabase/env'
 import {
   getBookingById,
   getSettingsRow,
+  listParticipants,
   listPayments,
   listReschedules,
 } from '@/lib/data/admin'
@@ -44,10 +46,11 @@ export default async function BookingDetailPage({ params }: PageProps<'/admin/bo
   const booking = await getBookingById(id)
   if (!booking) notFound()
 
-  const [payments, reschedules, settings] = await Promise.all([
+  const [payments, reschedules, settings, participants] = await Promise.all([
     listPayments(id),
     listReschedules(id),
     getSettingsRow(),
+    listParticipants(id),
   ])
 
   const today = todayInManila()
@@ -150,6 +153,19 @@ export default async function BookingDetailPage({ params }: PageProps<'/admin/bo
               </p>
             )}
           </Card>
+
+          {participants.length > 0 && (
+            <Card title="Joined this session">
+              <ul className="flex flex-wrap gap-2 text-sm">
+                {participants.map((p) => (
+                  <li key={p.profile_id} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1 pr-3">
+                    <Avatar name={p.profile?.display_name ?? 'Member'} url={p.profile?.avatar_url} size="sm" />
+                    {p.profile?.display_name ?? 'Member'}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
           <Card title="Payments">
             {payments.length === 0 ? (

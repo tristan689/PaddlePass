@@ -14,6 +14,10 @@ Court booking for **Undefeated Pickleball** (Undefeated Fitness Center, Manila).
    name, remembered on the device) or **signs in with Google**; the message is signed with
    the name — plus the account email when signed in, which staff use to file the booking so
    it shows on `/account`.
+   **Members** have a profile (name, photo, "show me on the calendar"). The Day view's
+   **Who's playing** lists confirmed sessions: a member's booking shows their name and
+   photo, a guest's shows only "Booked", and other members can **Join** (up to 7 joiners).
+   Contact details are never shown.
 2. **Staff** agree the booking in the chat, sign in at `/login` (username + password), and
    record it in the **admin**: new booking → record the GCash/cash payment → copy the
    customer's status link into the chat. Reschedules, arrivals, no-shows and the logbook
@@ -87,6 +91,13 @@ becomes an admin: list the email, and their first Google sign-in creates the sta
 
 The super admin is `tristandeguzman52@gmail.com` (role `owner`, pre-approved and created).
 
+### 3a. Player sign-up (email + password)
+
+Works out of the box: **Sign up** on `/login` calls `supabase.auth.signUp`. With Supabase's
+default *Confirm email* on, the player gets a link (lands on `/auth/confirm`); switch it off
+in *Authentication → Providers → Email* to let them straight in. The built-in mailer is
+rate-limited — set custom SMTP before launch.
+
 ### 3b. Customer sign-in (Google)
 
 1. Google Cloud Console → *APIs & Services → Credentials → Create OAuth client ID* (Web
@@ -100,9 +111,10 @@ Until the provider is enabled, the "Continue with Google" button explains that s
 is not switched on yet. Staff link a booking to a customer by entering the email from
 the customer's Messenger message in **New booking → Account email**.
 
-> Username-only accounts have no inbox, so "Forgot password" can't reach them. An owner
-> resets them by running the script again after deleting the user in the dashboard, or by
-> setting a new password in *Authentication → Users*.
+> Username-only accounts have no inbox, so "Forgot password" can't reach them and Google
+> can't match them. The admin nags such accounts to **add a real email** on
+> `/admin/account` (set through the Admin API, confirmed immediately); after that, Google
+> sign-in on that email links to the same account and resets work.
 
 ### 4. Pricing and hours
 
@@ -141,7 +153,8 @@ src/
   app/
     (public)/            calendar (Day/Week/Month, hour pills → Messenger), /account (customer's
                          bookings), /r/[reference] status page; /book/[date] redirects to the Day view
-    login/               Google for players; username or email + password for staff
+    login/               "Sign in / Sign up" chooser → Google or email+password (players),
+                         username+password (staff); ?mode=signin|signup deep-links a form
     auth/confirm/        where invite & reset emails land
     admin/               layout gate + pages; each area's actions.ts holds its Server Actions
       bookings/new       staff-entered booking (create_staff_booking RPC)
@@ -161,6 +174,7 @@ src/
   proxy.ts               session refresh + /admin redirect (UX only — not the security boundary).
                          Must live in src/ — at the project root Next ignores it.
 scripts/create-staff.mjs bootstrap a staff account from the terminal
+scripts/smoke-roster.mjs end-to-end check of member join / public roster against the live DB (cleans up)
 supabase/migrations/     the schema, in order; every rule is commented where it lives
 ```
 

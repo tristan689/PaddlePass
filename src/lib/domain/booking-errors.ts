@@ -25,6 +25,12 @@ const CUSTOMER_MESSAGES: Record<string, string> = {
   PADDLES_UNAVAILABLE: 'We do not have that many paddles to rent. Please choose fewer.',
   SLOT_TAKEN:
     'Sorry — someone else just took that time. The calendar has been refreshed; please pick another slot.',
+  // Joining a session.
+  NOT_SIGNED_IN: 'Sign in to join a session.',
+  NOT_FOUND: 'That session no longer exists.',
+  NOT_JOINABLE: 'That session can no longer be joined.',
+  IS_HOST: "That's your own booking — you're already in.",
+  SESSION_FULL: 'That session is full.',
 }
 
 const STAFF_MESSAGES: Record<string, string> = {

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { PinIcon, SocialLinks } from '@/components/social/SocialLinks'
+import { Avatar } from '@/components/ui/Avatar'
 import { SubmitButton } from '@/components/ui/SubmitButton'
 import { signOut } from '@/lib/auth/actions'
 import { getViewer } from '@/lib/auth/viewer'
@@ -54,8 +55,12 @@ export default async function PublicLayout({ children }: LayoutProps<'/'>) {
 
             {viewer?.kind === 'customer' && (
               <>
-                <Link href="/account" className="font-medium text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline">
-                  My bookings
+                <Link
+                  href="/account"
+                  className="flex items-center gap-2 font-medium text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline"
+                >
+                  <Avatar name={viewer.name} url={viewer.avatarUrl} size="sm" />
+                  <span className="hidden sm:inline">My account</span>
                 </Link>
                 <form action={signOut}>
                   <input type="hidden" name="to" value="/" />
@@ -71,7 +76,7 @@ export default async function PublicLayout({ children }: LayoutProps<'/'>) {
                 href="/login"
                 className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
               >
-                Sign in
+                Sign in or sign up
               </Link>
             )}
           </div>

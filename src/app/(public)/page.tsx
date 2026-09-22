@@ -1,16 +1,18 @@
 import Link from 'next/link'
+import { DayRoster } from '@/components/booking/DayRoster'
 import { TimePills } from '@/components/booking/TimePills'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
 import { StatusLegend } from '@/components/calendar/StatusLegend'
 import { pickView, ViewSwitcher } from '@/components/calendar/ViewSwitcher'
 import { WeekView } from '@/components/calendar/WeekView'
 import { FindUs } from '@/components/social/FindUs'
-import { getViewer } from '@/lib/auth/viewer'
+import { getViewer, type Viewer } from '@/lib/auth/viewer'
 import {
   getDayAvailability,
   getMonthAvailability,
   getStripAvailability,
 } from '@/lib/data/availability'
+import { getDayRoster, type RosterRow } from '@/lib/data/roster'
 import type { PublicSettings } from '@/lib/data/settings'
 import { formatPesoCompact } from '@/lib/domain/money'
 import {
@@ -55,12 +57,14 @@ export default async function CalendarPage({ searchParams }: PageProps<'/'>) {
 
   const viewer = await getViewer()
   const customer = viewer?.kind === 'customer' ? { name: viewer.name, email: viewer.email } : null
+  // From "Book as a guest instead" on the sign-in page: open the name step directly.
+  const guest = params.guest === '1'
 
   let settings: PublicSettings
   let body: React.ReactNode
 
   if (view === 'day') {
-    const result = await getDayAvailability(anchor)
+    const [result, roster] = await Promise.all([getDayAvailability(anchor), getDayRoster(anchor)])
     settings = result.settings
     body = (
       <DayView
@@ -69,6 +73,9 @@ export default async function CalendarPage({ searchParams }: PageProps<'/'>) {
         day={result.day}
         settings={settings}
         customer={customer}
+        roster={roster}
+        viewer={viewer}
+        guest={guest}
       />
     )
   } else if (view === 'month') {
@@ -111,12 +118,18 @@ function DayView({
   day,
   settings,
   customer,
+  roster,
+  viewer,
+  guest,
 }: {
   date: ManilaDate
   today: ManilaDate
   day: Awaited<ReturnType<typeof getDayAvailability>>['day']
   settings: PublicSettings
   customer: { name: string; email: string } | null
+  roster: RosterRow[]
+  viewer: Viewer
+  guest: boolean
 }) {
   const nav = 'rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900'
 
@@ -157,8 +170,11 @@ function DayView({
           rateCents={settings.rateCents}
           facebookPage={settings.facebookPage}
           customer={customer}
+          initialGuest={guest}
         />
       )}
+
+      <DayRoster sessions={roster} viewer={viewer} date={date} today={today} />
     </section>
   )
 }

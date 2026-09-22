@@ -24,6 +24,8 @@ export interface TimePillsProps {
   facebookPage: string
   /** Signed-in customer, so the message can be signed with their name and email. */
   customer?: MessageCustomer | null
+  /** Open the guest name step straight away (arrived via "Book as a guest instead"). */
+  initialGuest?: boolean
 }
 
 /**
@@ -49,13 +51,23 @@ export function TimePills({
   rateCents,
   facebookPage,
   customer = null,
+  initialGuest = false,
 }: TimePillsProps) {
   const [start, setStart] = useState<number | null>(null)
   const [end, setEnd] = useState<number | null>(null)
   // Guest flow: "Book as guest" reveals a name field; the name is remembered on
-  // this device so a regular does not retype it every visit.
-  const [guestMode, setGuestMode] = useState(false)
-  const [guestName, setGuestName] = useState('')
+  // this device so a regular does not retype it every visit. The field is not in
+  // the server-rendered tree (nothing is selected yet), so reading storage in the
+  // initializer cannot cause a hydration mismatch.
+  const [guestMode, setGuestMode] = useState(initialGuest)
+  const [guestName, setGuestName] = useState(() => {
+    if (!initialGuest || typeof window === 'undefined') return ''
+    try {
+      return localStorage.getItem(GUEST_NAME_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  })
 
   function startGuest() {
     try {
@@ -186,11 +198,8 @@ export function TimePills({
 
         {ready ? (
           // Keyed on the selection so the hint re-animates each time it changes.
-          <p
-            key={`${start}-${end}`}
-            className="mt-3 flex items-center gap-1.5 text-xs text-slate-600 animate-rise"
-          >
-            <span aria-hidden="true" className="text-base leading-none">↔</span>
+          <p key={`${start}-${end}`} className="mt-3 text-xs leading-relaxed text-slate-600 animate-rise">
+            <span aria-hidden="true" className="mr-1.5 text-sm leading-none">↔</span>
             {nextHour !== null ? (
               <>
                 Adjust your time: tap <strong>{pillLabel(nextHour)}</strong> to extend, or tap{' '}
@@ -296,10 +305,12 @@ function MessengerButton({ href, range, as }: { href: string; range: string; as:
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0084FF] px-4 py-3 text-base font-semibold text-white hover:bg-[#0074e0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0084FF]"
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0084FF] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0074e0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0084FF] sm:text-base"
       >
         <MessengerIcon />
-        Message us to book {range}
+        <span>
+          Message us to book <span className="whitespace-nowrap">{range}</span>
+        </span>
       </a>
       <p className="mt-1.5 text-center text-xs text-slate-500">Booking as {as}</p>
     </div>

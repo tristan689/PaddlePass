@@ -9,11 +9,14 @@ import { supabaseUrl } from './env'
  * Component ever imports this file, transitively or otherwise, the BUILD FAILS.
  * That turns a leaked service key from a code-review miss into a compile error.
  *
- * Used in exactly two places, both without a user session:
+ * Used only where a user session cannot do the job:
  *   - inviting staff via the Auth Admin API (src/app/admin/staff/actions.ts)
  *   - the secret-guarded hold-expiry cron route (src/app/api/cron/expire-holds)
- * If you find yourself reaching for it anywhere a staffer is signed in, the RLS
- * policy is wrong; fix that instead of escalating around it.
+ *   - setting a confirmed email on a username-only staff account
+ *     (src/lib/auth/actions.ts), which the user-level API would gate behind a
+ *     confirmation mail the fake address could never receive
+ * If you find yourself reaching for it for ordinary table access while a
+ * staffer is signed in, the RLS policy is wrong; fix that instead.
  */
 export function createAdminClient() {
   const key =
