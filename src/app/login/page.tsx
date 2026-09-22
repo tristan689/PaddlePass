@@ -33,23 +33,23 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
         </header>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-lg font-bold tracking-tight text-slate-900">Players</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Sign in to keep your bookings in one place. We only use your name and email.
-          </p>
-          <div className="mt-4">
-            <GoogleSignIn next="/account" />
-          </div>
-        </section>
+          <h1 className="text-lg font-bold tracking-tight text-slate-900">Sign in</h1>
 
-        <details className="group rounded-lg border border-slate-200 bg-white shadow-sm" open={next.startsWith('/admin')}>
-          <summary className="cursor-pointer list-none px-6 py-4 text-sm font-semibold text-slate-700 group-open:border-b group-open:border-slate-200">
-            Staff sign in
-          </summary>
-          <div className="p-6 pt-4">
+          <div className="mt-4">
             <LoginForm next={next} linkError={linkError} />
           </div>
-        </details>
+
+          <div className="my-6 flex items-center gap-3" role="separator" aria-label="or">
+            <span className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">or</span>
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <GoogleSignIn next="/account" />
+          <p className="mt-2 text-center text-xs text-slate-500">
+            Players: keep your bookings in one place. We only use your name and email.
+          </p>
+        </section>
 
         <p className="text-center text-xs text-slate-500">
           <Link href="/" className="underline">
