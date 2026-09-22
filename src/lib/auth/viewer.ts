@@ -13,7 +13,7 @@ import { getStaff, type StaffProfile } from './require-staff'
  * calendar and the Messenger message all ask once.
  */
 export type Viewer =
-  | { kind: 'staff'; userId: string; staff: StaffProfile; email: string }
+  | { kind: 'staff'; userId: string; staff: StaffProfile; email: string; avatarUrl: string | null }
   | {
       kind: 'customer'
       userId: string
@@ -33,16 +33,19 @@ export const getViewer = cache(async (): Promise<Viewer> => {
   const userId = claims.sub
   const email = typeof claims.email === 'string' ? claims.email : ''
 
-  const staff = await getStaff()
-  if (staff) return { kind: 'staff', userId, staff, email }
-
   // The profile row is created by trigger on sign-up; the claims are only a
-  // fallback for the moment before it exists.
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name, avatar_url, show_on_calendar')
-    .eq('id', userId)
-    .maybeSingle()
+  // fallback for the moment before it exists. Staff have one too -- it holds
+  // their photo for the header menu.
+  const [staff, { data: profile }] = await Promise.all([
+    getStaff(),
+    supabase
+      .from('profiles')
+      .select('display_name, avatar_url, show_on_calendar')
+      .eq('id', userId)
+      .maybeSingle(),
+  ])
+
+  if (staff) return { kind: 'staff', userId, staff, email, avatarUrl: profile?.avatar_url ?? null }
 
   const meta = (claims.user_metadata ?? {}) as Record<string, unknown>
   const metaName = [meta.full_name, meta.name].find(

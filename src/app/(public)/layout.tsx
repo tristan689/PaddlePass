@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { PinIcon, SocialLinks } from '@/components/social/SocialLinks'
-import { Avatar } from '@/components/ui/Avatar'
-import { SubmitButton } from '@/components/ui/SubmitButton'
+import { UserMenu } from '@/components/ui/UserMenu'
 import { signOut } from '@/lib/auth/actions'
 import { getViewer } from '@/lib/auth/viewer'
 import { BRAND_LINKS } from '@/lib/domain/links'
@@ -40,35 +39,34 @@ export default async function PublicLayout({ children }: LayoutProps<'/'>) {
             </a>
 
             {viewer?.kind === 'staff' && (
-              <>
-                <Link href="/admin" className="font-medium text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline">
-                  Admin
-                </Link>
-                <form action={signOut}>
-                  <input type="hidden" name="to" value="/" />
-                  <SubmitButton tone="secondary" size="sm" pendingLabel="…">
-                    Sign out
-                  </SubmitButton>
-                </form>
-              </>
+              <UserMenu
+                name={viewer.staff.fullName}
+                email={viewer.email.endsWith('.local') ? undefined : viewer.email}
+                avatarUrl={viewer.avatarUrl}
+                signOutAction={signOut}
+                signOutTo="/"
+                items={[
+                  { href: '/admin', label: 'Admin', hint: 'Bookings, payments, logbook' },
+                  { href: '/admin/account', label: 'Account settings' },
+                  ...(viewer.staff.role === 'owner'
+                    ? [{ href: '/admin/settings', label: 'Court settings', hint: 'Hours, rates, paddles' }]
+                    : []),
+                ]}
+              />
             )}
 
             {viewer?.kind === 'customer' && (
-              <>
-                <Link
-                  href="/account"
-                  className="flex items-center gap-2 font-medium text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline"
-                >
-                  <Avatar name={viewer.name} url={viewer.avatarUrl} size="sm" />
-                  <span className="hidden sm:inline">My account</span>
-                </Link>
-                <form action={signOut}>
-                  <input type="hidden" name="to" value="/" />
-                  <SubmitButton tone="secondary" size="sm" pendingLabel="…">
-                    Sign out
-                  </SubmitButton>
-                </form>
-              </>
+              <UserMenu
+                name={viewer.name}
+                email={viewer.email}
+                avatarUrl={viewer.avatarUrl}
+                signOutAction={signOut}
+                signOutTo="/"
+                items={[
+                  { href: '/account', label: 'My bookings' },
+                  { href: '/account#profile-heading', label: 'Profile settings', hint: 'Name, photo, visibility' },
+                ]}
+              />
             )}
 
             {!viewer && (

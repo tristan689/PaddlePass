@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { AdminNav } from '@/components/admin/AdminNav'
-import { SubmitButton } from '@/components/ui/SubmitButton'
+import { UserMenu } from '@/components/ui/UserMenu'
 import { signOut } from '@/lib/auth/actions'
 import { STAFF_LOGIN_DOMAIN } from '@/lib/auth/login'
 import { requireStaff } from '@/lib/auth/require-staff'
@@ -27,18 +27,24 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
             UNDEFEATED <span className="font-normal text-slate-500">Admin</span>
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <Link
-              href="/admin/account"
-              className="hidden text-slate-600 hover:text-slate-900 sm:inline"
-            >
+            <span className="hidden text-slate-600 sm:inline">
               {staff.fullName}
               <span className="text-slate-400"> · {staff.role}</span>
-            </Link>
-            <form action={signOut}>
-              <SubmitButton tone="secondary" size="sm" pendingLabel="…">
-                Sign out
-              </SubmitButton>
-            </form>
+            </span>
+            <UserMenu
+              name={staff.fullName}
+              email={usernameOnly ? undefined : viewer?.email}
+              avatarUrl={viewer?.kind === 'staff' ? viewer.avatarUrl : null}
+              signOutAction={signOut}
+              signOutTo="/login"
+              items={[
+                { href: '/admin/account', label: 'Account settings', hint: 'Email, password' },
+                ...(staff.role === 'owner'
+                  ? [{ href: '/admin/settings', label: 'Court settings', hint: 'Hours, rates, paddles' }]
+                  : []),
+                { href: '/', label: 'Public calendar' },
+              ]}
+            />
           </div>
         </div>
         <AdminNav isOwner={staff.role === 'owner'} />
