@@ -4,9 +4,11 @@ Court booking for **Undefeated Pickleball** (Undefeated Fitness Center, Manila).
 
 **The flow**
 
-1. **Public calendar** (`/`) shows which hours are open. Tapping a day opens **Facebook
-   Messenger** (`m.me/<page>`) with the date already typed. That's the whole public side —
-   no form, no account.
+1. **Public calendar** (`/`) shows which hours are open. Tap a day → `/book/<date>` → tap
+   or drag the hour pills (3 PM … 11 PM) → the **Messenger** button wakes up and opens
+   `m.me/<page>` with "I'm booking the court on <date>, <hours>…" already typed. That's the
+   whole public side — no form, no account. Grey = being booked, **yellow = reserved**
+   (confirmed, no downpayment yet), **green = booked** (downpayment or paid).
 2. **Staff** agree the booking in the chat, sign in at `/login` (username + password), and
    record it in the **admin**: new booking → record the GCash/cash payment → copy the
    customer's status link into the chat. Reschedules, arrivals, no-shows and the logbook
@@ -110,17 +112,19 @@ and get preview deployments.
 ```
 src/
   app/
-    (public)/            calendar (Messenger deep links), /r/[reference] status page
+    (public)/            calendar, /book/[date] hour pills → Messenger, /r/[reference] status page
     login/               staff sign-in (username or email) + forgot password
     auth/confirm/        where invite & reset emails land
     admin/               layout gate + pages; each area's actions.ts holds its Server Actions
       bookings/new       staff-entered booking (create_staff_booking RPC)
     api/logbook.csv/     CSV export, same filters as the logbook page
     api/cron/expire-holds/  secret-guarded fallback sweep
-  components/            calendar (SVG, zero JS), admin, auth, ui
+  components/            calendar (SVG, zero JS), booking/TimePills (the one client piece on
+                         the public side), social (footer icons), admin, auth, ui
   lib/
     domain/              PURE, unit-tested: Manila time, centavo money, pricing, availability,
-                         status wording, reference codes, error-code → sentence, CSV, m.me links
+                         status wording, reference codes, error-code → sentence, CSV, m.me links,
+                         brand links (Facebook / Instagram / TikTok / Google Business Profile)
     data/                server-only reads through the SSR client (RLS applies)
     auth/                requireStaff / requireOwner, sign-in actions, username mapping, safe redirect
     supabase/            server / browser / admin clients, env
@@ -148,6 +152,11 @@ supabase/migrations/     the schema, in order; every rule is commented where it 
 
 Live against Supabase project `ilpikehoeufqqelzxelq` with the admin account created and
 hours set to 3 PM – midnight. Hourly rate is still ₱0 — set it in Settings before taking
-money. Not built: marking a booking `completed` (no RPC yet), partial-day closures, a
-second court. The removed self-serve request flow (slot picker + `/book/<date>`) is in git
-history at commit `6d6f073` if it is ever wanted back.
+money (the day page hides the price line until then). Not built: customer accounts (not
+needed for the Messenger flow), marking a booking `completed` (no RPC yet), partial-day
+closures, a second court. The earlier self-serve request form (`create_booking` from the
+browser) is in git history at commit `6d6f073` if it is ever wanted back; the RPC itself
+is still in the database.
+
+The "Get directions" link searches Google Maps by the gym's name. Swap in the exact
+address or a Place ID in `src/lib/domain/links.ts` for a pin-accurate result.

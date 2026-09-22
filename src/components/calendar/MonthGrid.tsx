@@ -1,27 +1,23 @@
 import Link from 'next/link'
 import type { DayAvailability } from '@/lib/domain/availability'
-import { bookingEnquiry, messengerHref } from '@/lib/domain/messenger'
 import { addMonths, formatMonthLong, weekdayOf, WEEKDAY_LABELS } from '@/lib/domain/time'
 import { AvailabilityBar, availabilityCaption } from './AvailabilityBar'
 
 /**
  * Desktop month calendar.
  *
- * A Server Component: month navigation is a <Link> to ?m=YYYY-MM, and a day with
- * open hours is a plain <a> into Facebook Messenger with the date already typed.
- * The grid ships zero JavaScript, every view is a real URL, and the back button
+ * A Server Component: month navigation is a <Link> to ?m=YYYY-MM and picking a day
+ * is a <Link> to /book/<date>, where the hours are chosen and Messenger opens. The
+ * grid ships zero JavaScript, every view is a real URL, and the back button
  * behaves -- which matters inside the Facebook in-app browser.
  */
 export function MonthGrid({
   month,
   days,
-  facebookPage,
   className = '',
 }: {
   month: string
   days: DayAvailability[]
-  /** Page handle after facebook.com/ -- drives the m.me links. */
-  facebookPage: string
   className?: string
 }) {
   // Blank cells so the 1st lands under its real weekday.
@@ -68,14 +64,14 @@ export function MonthGrid({
         ))}
 
         {days.map((day) => (
-          <DayCell key={day.date} day={day} facebookPage={facebookPage} />
+          <DayCell key={day.date} day={day} />
         ))}
       </div>
     </section>
   )
 }
 
-function DayCell({ day, facebookPage }: { day: DayAvailability; facebookPage: string }) {
+function DayCell({ day }: { day: DayAvailability }) {
   const caption = availabilityCaption(day)
   const dayNumber = Number(day.date.slice(8, 10))
   const bookable = !day.closed && day.freeHoursCount > 0
@@ -113,14 +109,11 @@ function DayCell({ day, facebookPage }: { day: DayAvailability; facebookPage: st
   }
 
   return (
-    <a
-      href={messengerHref(facebookPage, bookingEnquiry(day.date))}
-      target="_blank"
-      rel="noopener noreferrer"
-      title="Message us on Facebook to book this day"
+    <Link
+      href={`/book/${day.date}`}
       className="flex min-h-24 flex-col items-center bg-white p-2 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-slate-900"
     >
       {inner}
-    </a>
+    </Link>
   )
 }

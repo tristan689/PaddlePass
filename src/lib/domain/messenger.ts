@@ -1,9 +1,10 @@
-import { formatDateLong, type ManilaDate } from './time'
+import { formatDateLong, formatHourRange, type ManilaDate } from './time'
 
 /**
- * The public side books through Facebook Messenger, not a form. A day on the
- * calendar is a deep link into the conversation with the date already typed, so
- * the customer's first message carries what staff need to look it up.
+ * The public side books through Facebook Messenger, not a form. Once a customer
+ * has picked their hours, the Messenger button is a deep link into the chat with
+ * the booking already typed, so the first message carries everything staff need
+ * to enter it in the admin.
  */
 
 /** `https://m.me/<page>?text=...`. Tolerates a pasted `@handle`. */
@@ -12,7 +13,12 @@ export function messengerHref(page: string, text: string): string {
   return `https://m.me/${encodeURIComponent(handle)}?text=${encodeURIComponent(text)}`
 }
 
-/** The prefilled opener for a calendar day. */
-export function bookingEnquiry(date: ManilaDate): string {
-  return `Hi! I'd like to book the court on ${formatDateLong(date)}. What times are open?`
+/** The prefilled message for a chosen slot. */
+export function bookingMessage(date: ManilaDate, startHour: number, endHour: number): string {
+  const hours = endHour - startHour
+  return (
+    `Hi! I'm booking the court on ${formatDateLong(date)}, ` +
+    `${formatHourRange(startHour, endHour)} (${hours} hour${hours === 1 ? '' : 's'}). ` +
+    `Please confirm — thank you!`
+  )
 }

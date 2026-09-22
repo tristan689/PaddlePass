@@ -8,10 +8,9 @@ import { formatHour, resolveMonth, todayInManila } from '@/lib/domain/time'
 /**
  * The public booking calendar — what a Facebook link opens.
  *
- * View-only by design: it shows WHEN the court is free, and a tap on an open day
- * drops the customer into Messenger with the date already typed. Staff take it
- * from there and record the booking in the admin. No form, no account, nothing
- * for a customer to get wrong.
+ * View-only by design: it shows WHEN the court is free. A tap on an open day goes
+ * to that day's time picker, and from there a single button drops the customer
+ * into Messenger with the booking already typed. No form, no account.
  *
  * A Server Component that fetches availability server-side, so the browser is
  * never handed a Supabase key and never receives a row the availability
@@ -39,7 +38,7 @@ export default async function CalendarPage({ searchParams }: PageProps<'/'>) {
           Open {formatHour(settings.openHour)} – {formatHour(settings.closeHour)}
         </p>
         <p className="mt-2 text-sm text-slate-700">
-          Tap a day with open hours and we&apos;ll pick it up on Facebook Messenger.
+          Tap a day, pick your time, and message us on Messenger to book.
         </p>
       </section>
 
@@ -48,22 +47,17 @@ export default async function CalendarPage({ searchParams }: PageProps<'/'>) {
         <h2 className="mb-2 text-xs font-semibold tracking-wider text-slate-500">
           PICK A DATE
         </h2>
-        <DateStrip days={strip.days} facebookPage={settings.facebookPage} />
+        <DateStrip days={strip.days} />
       </section>
 
       {/* Desktop: the full month. */}
-      <MonthGrid
-        month={month}
-        days={days}
-        facebookPage={settings.facebookPage}
-        className="hidden md:block"
-      />
+      <MonthGrid month={month} days={days} className="hidden md:block" />
 
       <StatusLegend className="pt-1" />
 
       <p className="text-xs leading-relaxed text-slate-500">
-        Bookings are arranged and confirmed on Messenger — we&apos;ll reply with the open
-        times for your day and how to pay.
+        Grey is being booked, yellow is reserved, green is booked. We confirm on Messenger
+        and lock your slot in once the downpayment is in.
       </p>
     </div>
   )

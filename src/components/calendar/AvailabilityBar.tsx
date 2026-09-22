@@ -3,9 +3,9 @@ import { displayFor, type CalendarState } from '@/lib/domain/status'
 
 const STATE_FILL: Record<CalendarState, string> = {
   free: 'var(--color-slot-free)',
-  pending: 'var(--color-slot-pending)',
-  approved: 'var(--color-slot-pending)',
-  downpayment: 'var(--color-slot-down)',
+  pending: 'var(--color-slot-pending)', // grey: being booked
+  approved: 'var(--color-slot-down)', // yellow: reserved
+  downpayment: 'var(--color-slot-paid)', // green: booked
   paid: 'var(--color-slot-paid)',
   closed: 'var(--color-slot-closed)',
   past: '#f1f5f9',

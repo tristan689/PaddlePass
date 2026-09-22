@@ -99,19 +99,21 @@ const DISPLAY: Record<CalendarState, StateDisplay> = {
     className: 'bg-slot-pending border-dashed border-slate-400 text-slate-900',
     description: 'Pending — someone has requested this, not yet confirmed',
   },
+  // The gym's three-colour rule: grey = being booked, yellow = reserved (we said
+  // yes, no money yet), green = booked (downpayment or more received).
   approved: {
-    label: 'Approved',
-    glyph: '✓',
-    fill: 'outlined',
-    className: 'bg-slot-pending border-slate-600 text-slate-900',
-    description: 'Approved — confirmed, but no payment recorded yet',
-  },
-  downpayment: {
     label: 'Reserved',
     glyph: '◐',
     fill: 'half',
     className: 'bg-slot-down border-amber-500 text-slate-900',
-    description: 'Reserved — downpayment received, balance outstanding',
+    description: 'Reserved — confirmed with us, downpayment still to come',
+  },
+  downpayment: {
+    label: 'Booked',
+    glyph: '●',
+    fill: 'full',
+    className: 'bg-slot-paid border-emerald-600 text-slate-900',
+    description: 'Booked — downpayment received',
   },
   paid: {
     label: 'Booked',
@@ -140,12 +142,14 @@ export function displayFor(state: CalendarState): StateDisplay {
   return DISPLAY[state]
 }
 
-/** Legend order, public-facing. `past` is omitted -- it needs no explaining. */
+/**
+ * Legend order, public-facing. `past` needs no explaining, and `downpayment`
+ * paints identically to `paid`, so one green entry covers both.
+ */
 export const LEGEND_STATES: readonly CalendarState[] = [
   'free',
   'pending',
   'approved',
-  'downpayment',
   'paid',
   'closed',
 ] as const
@@ -153,9 +157,9 @@ export const LEGEND_STATES: readonly CalendarState[] = [
 /** Admin-facing wording, which is blunter than what customers see. */
 const ADMIN_LABELS: Record<BookingStatus, string> = {
   pending: 'Pending',
-  approved: 'Approved · unpaid',
-  downpayment: 'Downpayment',
-  paid: 'Fully paid',
+  approved: 'Reserved · unpaid',
+  downpayment: 'Booked · downpayment',
+  paid: 'Booked · fully paid',
   completed: 'Completed',
   cancelled: 'Cancelled',
   declined: 'Declined',
@@ -189,13 +193,13 @@ const CUSTOMER_STATUS: Record<BookingStatus, CustomerStatus> = {
     tone: 'warn',
   },
   approved: {
-    title: 'Confirmed — payment pending',
-    detail: 'We have approved your booking. Please settle the downpayment to reserve it.',
-    tone: 'neutral',
+    title: 'Reserved — downpayment pending',
+    detail: 'We have confirmed your slot. Send the downpayment to lock it in as booked.',
+    tone: 'warn',
   },
   downpayment: {
-    title: 'Reserved — downpayment received',
-    detail: 'Your court is reserved. Pay the balance at the court before you play.',
+    title: 'Booked — downpayment received',
+    detail: 'Your court is booked. Pay the balance at the court before you play.',
     tone: 'good',
   },
   paid: {

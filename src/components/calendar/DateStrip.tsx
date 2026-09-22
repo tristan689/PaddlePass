@@ -1,5 +1,5 @@
+import Link from 'next/link'
 import type { DayAvailability } from '@/lib/domain/availability'
-import { bookingEnquiry, messengerHref } from '@/lib/domain/messenger'
 import { formatDateLong } from '@/lib/domain/time'
 import { AvailabilityBar, isPastDay } from './AvailabilityBar'
 
@@ -13,17 +13,14 @@ const WEEKDAY_SHORT = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
  * unreadable besides. A horizontally scroll-snapped filmstrip is the pattern those
  * same users already know from Grab and Lazada.
  *
- * Still a Server Component: scroll-snap is pure CSS and each open chip is a plain
- * link straight into Messenger with the date already typed.
+ * Still a Server Component: scroll-snap is pure CSS and each chip is a link to the
+ * day's time picker.
  */
 export function DateStrip({
   days,
-  facebookPage,
   className = '',
 }: {
   days: DayAvailability[]
-  /** Page handle after facebook.com/ -- drives the m.me links. */
-  facebookPage: string
   className?: string
 }) {
   return (
@@ -35,7 +32,7 @@ export function DateStrip({
       <ul className="flex gap-2 pb-1">
         {days.map((day) => (
           <li key={day.date} style={{ scrollSnapAlign: 'center' }}>
-            <DateChip day={day} facebookPage={facebookPage} />
+            <DateChip day={day} />
           </li>
         ))}
       </ul>
@@ -43,7 +40,7 @@ export function DateStrip({
   )
 }
 
-function DateChip({ day, facebookPage }: { day: DayAvailability; facebookPage: string }) {
+function DateChip({ day }: { day: DayAvailability }) {
   const dayNumber = Number(day.date.slice(8, 10))
   const weekday = WEEKDAY_SHORT[new Date(`${day.date}T00:00:00Z`).getUTCDay()]
   const past = isPastDay(day)
@@ -57,7 +54,7 @@ function DateChip({ day, facebookPage }: { day: DayAvailability; facebookPage: s
         ? 'Past'
         : day.freeHoursCount === 0
           ? 'Fully booked'
-          : `${day.freeHoursCount} of ${day.openHoursCount} hours open. Message us to book.`
+          : `${day.freeHoursCount} of ${day.openHoursCount} hours open`
   }`
 
   const body = (
@@ -91,14 +88,12 @@ function DateChip({ day, facebookPage }: { day: DayAvailability; facebookPage: s
   }
 
   return (
-    <a
-      href={messengerHref(facebookPage, bookingEnquiry(day.date))}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href={`/book/${day.date}`}
       aria-label={label}
       className={`${base} border-slate-300 bg-white transition-shadow hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900`}
     >
       {body}
-    </a>
+    </Link>
   )
 }
