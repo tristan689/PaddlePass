@@ -62,13 +62,21 @@ export default async function AdminHome() {
               : `${pending.length} request${pending.length === 1 ? '' : 's'} waiting for a decision.`}
           </p>
         </div>
-        <Link
-          href={`/?m=${month}`}
-          className="text-sm text-slate-600 underline-offset-2 hover:underline"
-          target="_blank"
-        >
-          Open the public calendar ↗
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/?m=${month}`}
+            className="text-sm text-slate-600 underline-offset-2 hover:underline"
+            target="_blank"
+          >
+            Public calendar ↗
+          </Link>
+          <Link
+            href={`/admin/bookings/new?date=${today}`}
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800"
+          >
+            + New booking
+          </Link>
+        </div>
       </header>
 
       <section aria-labelledby="month-heading">

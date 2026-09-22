@@ -27,14 +27,17 @@ export function LoginForm({ next, linkError }: { next: string; linkError: boolea
         <input type="hidden" name="next" value={next} />
 
         <label className="block">
-          <span className="text-sm font-medium text-slate-800">Email</span>
+          <span className="text-sm font-medium text-slate-800">Username</span>
           <input
-            name="email"
-            type="email"
-            autoComplete="email"
+            name="login"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
             required
             className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
+          <span className="mt-1 block text-xs text-slate-500">Or your staff email.</span>
         </label>
 
         <label className="block">
@@ -73,6 +76,10 @@ export function LoginForm({ next, linkError }: { next: string; linkError: boolea
               required
               className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             />
+            <span className="mt-1 block text-xs text-slate-500">
+              Only works for accounts with a real email address — username-only accounts are
+              reset by an owner from the Staff page.
+            </span>
           </label>
           {resetState.error && (
             <p role="alert" className="text-sm text-red-700">

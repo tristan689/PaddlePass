@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { siteUrl } from '@/lib/supabase/env'
+import { loginToEmail } from './login'
 import { safeNextPath } from './redirect'
 
 export interface AuthState {
@@ -12,12 +13,12 @@ export interface AuthState {
 }
 
 const credentials = z.object({
-  email: z.string().trim().email('Enter a valid email address.'),
+  login: z.string().trim().min(1, 'Enter your username.'),
   password: z.string().min(1, 'Enter your password.'),
 })
 
 /**
- * Email + password sign-in.
+ * Username (or email) + password sign-in.
  *
  * A valid Supabase user who is not on the active staff roster is signed straight
  * back out. Leaving the session in place would let them sit on /login with a
@@ -25,19 +26,25 @@ const credentials = z.object({
  */
 export async function signIn(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = credentials.safeParse({
-    email: formData.get('email'),
+    login: formData.get('login'),
     password: formData.get('password'),
   })
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Check your details.' }
   }
 
+  const email = loginToEmail(parsed.data.login)
+  if (!email) return { error: 'Wrong username or password.' }
+
   const supabase = await createClient()
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password: parsed.data.password,
+  })
   if (error || !data.user) {
-    // One message for both wrong-email and wrong-password: never confirm which
-    // addresses have accounts.
-    return { error: 'Wrong email or password.' }
+    // One message for both wrong-username and wrong-password: never confirm which
+    // accounts exist.
+    return { error: 'Wrong username or password.' }
   }
 
   const { data: staff } = await supabase
@@ -76,7 +83,7 @@ export async function requestPasswordReset(
   _prev: AuthState,
   formData: FormData
 ): Promise<AuthState> {
-  const email = z.string().trim().email().safeParse(formData.get('email'))
+  const email = z.email().safeParse(String(formData.get('email') ?? '').trim())
   if (!email.success) return { error: 'Enter a valid email address.' }
 
   const supabase = await createClient()

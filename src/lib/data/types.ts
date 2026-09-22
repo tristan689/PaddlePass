@@ -16,6 +16,8 @@ export type StaffRole = 'owner' | 'staff'
 export interface BookingRow {
   id: string
   reference_code: string
+  /** Secret half of the customer's /r/<ref>?t= link. Staff-visible so they can send it. */
+  lookup_token: string
   court_id: number
   booking_date: string
   start_time: string

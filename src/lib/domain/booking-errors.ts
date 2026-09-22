@@ -29,6 +29,8 @@ const CUSTOMER_MESSAGES: Record<string, string> = {
 
 const STAFF_MESSAGES: Record<string, string> = {
   NOT_STAFF: 'Your account is not an active staff account.',
+  MISSING_DETAILS: "Enter the customer's name.",
+  PADDLES_UNAVAILABLE: 'Not that many paddles are available. Check Settings → paddles owned.',
   NOT_FOUND: 'That booking no longer exists.',
   NOT_PENDING: 'Only a pending request can be approved. Refresh to see its current status.',
   INVALID_STATUS: 'That is not a valid resolution.',

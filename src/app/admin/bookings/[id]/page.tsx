@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation'
 import { PaymentForm } from '@/components/admin/PaymentForm'
 import { StatusBadge } from '@/components/admin/StatusBadge'
 import { ActionForm } from '@/components/ui/ActionForm'
+import { CopyButton } from '@/components/ui/CopyButton'
 import { SubmitButton } from '@/components/ui/SubmitButton'
 import { requireStaff } from '@/lib/auth/require-staff'
+import { siteUrl } from '@/lib/supabase/env'
 import {
   getBookingById,
   getSettingsRow,
@@ -68,6 +70,7 @@ export default async function BookingDetailPage({ params }: PageProps<'/admin/bo
   const canArrive = isLive && !booking.checked_in_at
   const canMove = isPending || isLive
   const canNoShow = isLive && date <= today
+  const customerLink = `${siteUrl()}/r/${booking.reference_code}?t=${booking.lookup_token}`
 
   return (
     <div className="space-y-6">
@@ -191,6 +194,24 @@ export default async function BookingDetailPage({ params }: PageProps<'/admin/bo
         </div>
 
         <aside className="space-y-4">
+          {(isPending || isLive) && (
+            <Card title="Customer link">
+              <p className="mb-2 text-xs text-slate-600">
+                Paste this into the Messenger chat. It shows their status, total and balance —
+                nothing else, and only with this exact link.
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={customerLink}
+                  aria-label="Customer status link"
+                  className="min-w-0 flex-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-1.5 font-mono text-xs text-slate-700"
+                />
+                <CopyButton text={customerLink} />
+              </div>
+            </Card>
+          )}
+
           {isPending && (
             <Card title="Decide">
               <ActionForm action={approveBooking} className="mb-3">

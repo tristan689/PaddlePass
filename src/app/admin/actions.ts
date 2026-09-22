@@ -1,6 +1,7 @@
 'use server'
 
 import { refresh } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import type { ActionState } from '@/lib/actions/state'
 import { requireStaff } from '@/lib/auth/require-staff'
@@ -189,4 +190,60 @@ export async function rescheduleBooking(_prev: ActionState, formData: FormData):
     },
     'Moved. The reference code and payments stay with the booking.'
   )
+}
+
+// ---------------------------------------------------------------------------
+// Staff-entered bookings: the customer agreed it on Messenger, staff type it in.
+// ---------------------------------------------------------------------------
+
+const staffBooking = z.object({
+  date: z.string().refine(isManilaDate, 'Pick a valid date.'),
+  start_hour: z.coerce.number().int().min(0).max(23),
+  end_hour: z.coerce.number().int().min(1).max(24),
+  paddle_count: z.coerce.number().int().min(0).max(50),
+  customer_name: z.string().trim().min(1, "Enter the customer's name.").max(80),
+  contact: z.string().trim().max(40),
+  facebook_name: z.string().trim().max(80),
+  note: z.string().trim().max(500),
+})
+
+/** Creates the booking already approved and lands on its detail page. */
+export async function createStaffBooking(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireStaff()
+  const parsed = staffBooking.safeParse({
+    date: field(formData, 'date'),
+    start_hour: field(formData, 'start_hour'),
+    end_hour: field(formData, 'end_hour'),
+    paddle_count: field(formData, 'paddle_count') || '0',
+    customer_name: field(formData, 'customer_name'),
+    contact: field(formData, 'contact'),
+    facebook_name: field(formData, 'facebook_name'),
+    note: field(formData, 'note'),
+  })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Check the booking details.' }
+  }
+  const b = parsed.data
+  if (b.end_hour <= b.start_hour) return { error: 'The end time must be after the start time.' }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('create_staff_booking', {
+    p_date: b.date,
+    p_start_hour: b.start_hour,
+    p_end_hour: b.end_hour,
+    p_paddle_count: b.paddle_count,
+    p_customer_name: b.customer_name,
+    p_contact: b.contact,
+    p_facebook_name: b.facebook_name,
+    p_note: b.note || null,
+  })
+
+  if (error) {
+    const message = staffMessageFor(error.message)
+    if (message === staffMessageFor('')) console.error('create_staff_booking failed', error)
+    return { error: message }
+  }
+
+  // redirect() throws, so it stays outside any try/catch and is the last thing here.
+  redirect(`/admin/bookings/${(data as { id: string }).id}`)
 }

@@ -1,23 +1,27 @@
 import Link from 'next/link'
 import type { DayAvailability } from '@/lib/domain/availability'
+import { bookingEnquiry, messengerHref } from '@/lib/domain/messenger'
 import { addMonths, formatMonthLong, weekdayOf, WEEKDAY_LABELS } from '@/lib/domain/time'
 import { AvailabilityBar, availabilityCaption } from './AvailabilityBar'
 
 /**
  * Desktop month calendar.
  *
- * A Server Component: month navigation is a <Link> to ?m=YYYY-MM and picking a day
- * is a <Link> to /book/<date>, so the whole grid ships zero JavaScript. It also
- * means every view is a real URL — staff can send a customer straight to a
- * specific day, and the browser back button behaves.
+ * A Server Component: month navigation is a <Link> to ?m=YYYY-MM, and a day with
+ * open hours is a plain <a> into Facebook Messenger with the date already typed.
+ * The grid ships zero JavaScript, every view is a real URL, and the back button
+ * behaves -- which matters inside the Facebook in-app browser.
  */
 export function MonthGrid({
   month,
   days,
+  facebookPage,
   className = '',
 }: {
   month: string
   days: DayAvailability[]
+  /** Page handle after facebook.com/ -- drives the m.me links. */
+  facebookPage: string
   className?: string
 }) {
   // Blank cells so the 1st lands under its real weekday.
@@ -64,14 +68,14 @@ export function MonthGrid({
         ))}
 
         {days.map((day) => (
-          <DayCell key={day.date} day={day} />
+          <DayCell key={day.date} day={day} facebookPage={facebookPage} />
         ))}
       </div>
     </section>
   )
 }
 
-function DayCell({ day }: { day: DayAvailability }) {
+function DayCell({ day, facebookPage }: { day: DayAvailability; facebookPage: string }) {
   const caption = availabilityCaption(day)
   const dayNumber = Number(day.date.slice(8, 10))
   const bookable = !day.closed && day.freeHoursCount > 0
@@ -93,8 +97,8 @@ function DayCell({ day }: { day: DayAvailability }) {
     </>
   )
 
-  // A fully-booked or closed day is not a link. Rendering it as a dead link would
-  // invite a tap that goes nowhere; a <div> with aria-disabled states the fact.
+  // A fully-booked, closed or past day is not a link. Rendering it as a dead link
+  // would invite a tap that goes nowhere; a <div> with aria-disabled states the fact.
   if (!bookable) {
     return (
       <div
@@ -109,11 +113,14 @@ function DayCell({ day }: { day: DayAvailability }) {
   }
 
   return (
-    <Link
-      href={`/book/${day.date}`}
+    <a
+      href={messengerHref(facebookPage, bookingEnquiry(day.date))}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Message us on Facebook to book this day"
       className="flex min-h-24 flex-col items-center bg-white p-2 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-slate-900"
     >
       {inner}
-    </Link>
+    </a>
   )
 }

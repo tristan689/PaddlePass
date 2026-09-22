@@ -38,12 +38,20 @@ export default async function LogbookPage({ searchParams }: PageProps<'/admin/bo
               : `Showing ${first}–${last} of ${result.total}.`}
           </p>
         </div>
-        <a
-          href={`/api/logbook.csv${logbookQuery(filters)}`}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-        >
-          Export CSV
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/logbook.csv${logbookQuery(filters)}`}
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+          >
+            Export CSV
+          </a>
+          <Link
+            href="/admin/bookings/new"
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800"
+          >
+            + New booking
+          </Link>
+        </div>
       </header>
 
       <form method="get" className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">

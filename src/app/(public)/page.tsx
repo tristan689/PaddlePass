@@ -8,13 +8,15 @@ import { formatHour, resolveMonth, todayInManila } from '@/lib/domain/time'
 /**
  * The public booking calendar — what a Facebook link opens.
  *
+ * View-only by design: it shows WHEN the court is free, and a tap on an open day
+ * drops the customer into Messenger with the date already typed. Staff take it
+ * from there and record the booking in the admin. No form, no account, nothing
+ * for a customer to get wrong.
+ *
  * A Server Component that fetches availability server-side, so the browser is
  * never handed a Supabase key and never receives a row the availability
- * projection did not deliberately expose. It also means a phone on mobile data
- * gets HTML rather than a spinner.
- *
- * Never cached: a customer seeing a slot that vanished on submit is the worst
- * failure mode this page has.
+ * projection did not deliberately expose. Never cached: a stale "open" day that
+ * turns out to be full is the worst failure mode this page has.
  */
 export const dynamic = 'force-dynamic'
 
@@ -31,58 +33,37 @@ export default async function CalendarPage({ searchParams }: PageProps<'/'>) {
   return (
     <div className="space-y-6">
       <section>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">
-          Book the court
-        </h1>
+        <h1 className="text-xl font-bold tracking-tight text-slate-900">Book the court</h1>
         <p className="mt-1 text-sm text-slate-600">
-          {settings.isConfigured ? (
-            <>
-              {formatPesoCompact(settings.rateCents)}/hour · Open{' '}
-              {formatHour(settings.openHour)} – {formatHour(settings.closeHour)}
-            </>
-          ) : (
-            <>Open {formatHour(settings.openHour)} – {formatHour(settings.closeHour)}</>
-          )}
+          {settings.isConfigured && <>{formatPesoCompact(settings.rateCents)}/hour · </>}
+          Open {formatHour(settings.openHour)} – {formatHour(settings.closeHour)}
+        </p>
+        <p className="mt-2 text-sm text-slate-700">
+          Tap a day with open hours and we&apos;ll pick it up on Facebook Messenger.
         </p>
       </section>
-
-      {!settings.isConfigured && <NotConfiguredNotice />}
 
       {/* Mobile: filmstrip of the next three weeks. */}
       <section className="md:hidden">
         <h2 className="mb-2 text-xs font-semibold tracking-wider text-slate-500">
           PICK A DATE
         </h2>
-        <DateStrip days={strip.days} />
+        <DateStrip days={strip.days} facebookPage={settings.facebookPage} />
       </section>
 
       {/* Desktop: the full month. */}
-      <MonthGrid month={month} days={days} className="hidden md:block" />
+      <MonthGrid
+        month={month}
+        days={days}
+        facebookPage={settings.facebookPage}
+        className="hidden md:block"
+      />
 
       <StatusLegend className="pt-1" />
 
       <p className="text-xs leading-relaxed text-slate-500">
-        Picking a time sends us a request — it is not a confirmed booking. We will
-        confirm it with you on Facebook Messenger.
-      </p>
-    </div>
-  )
-}
-
-/**
- * First-run state. The court genuinely cannot be booked until an owner sets an
- * hourly rate, so the page says so plainly rather than quoting ₱0 per hour and
- * taking bookings nobody meant to accept.
- */
-function NotConfiguredNotice() {
-  return (
-    <div
-      role="status"
-      className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
-    >
-      <p className="font-semibold">Online booking is not open yet.</p>
-      <p className="mt-1">
-        Please message us on Facebook to book the court while we finish setting this up.
+        Bookings are arranged and confirmed on Messenger — we&apos;ll reply with the open
+        times for your day and how to pay.
       </p>
     </div>
   )
