@@ -103,7 +103,13 @@ export default async function BookingDetailPage({ params }: PageProps<'/admin/bo
                 </a>
               </dd>
               <dt className="text-slate-500">Facebook</dt>
-              <dd className="text-slate-900">{booking.facebook_name}</dd>
+              <dd className="text-slate-900">{booking.facebook_name || '—'}</dd>
+              {booking.customer_email && (
+                <>
+                  <dt className="text-slate-500">Account</dt>
+                  <dd className="text-slate-900">{booking.customer_email}</dd>
+                </>
+              )}
               {booking.customer_note && (
                 <>
                   <dt className="text-slate-500">Note</dt>

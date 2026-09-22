@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { PinIcon, SocialLinks } from '@/components/social/SocialLinks'
 import { SubmitButton } from '@/components/ui/SubmitButton'
 import { signOut } from '@/lib/auth/actions'
-import { getStaff } from '@/lib/auth/require-staff'
+import { getViewer } from '@/lib/auth/viewer'
 import { BRAND_LINKS } from '@/lib/domain/links'
 
 /**
@@ -12,13 +12,12 @@ import { BRAND_LINKS } from '@/lib/domain/links'
  * in-app browser, which has no URL bar — so the page has to say what it is
  * immediately, and every navigation has to be a real route with working back.
  *
- * Customers have no accounts, so the only session that can exist here is a staff
- * one. When it does, the header offers the admin and a sign-out; otherwise just a
- * quiet way in for staff. `getStaff()` is a local JWT check for anonymous
- * visitors and costs them no database round trip.
+ * The header adapts to who is here: staff get the admin, a signed-in customer
+ * gets their bookings, everyone else gets a way to sign in. `getViewer()` is a
+ * local JWT check for anonymous visitors and costs them no database round trip.
  */
 export default async function PublicLayout({ children }: LayoutProps<'/'>) {
-  const staff = await getStaff()
+  const viewer = await getViewer()
 
   return (
     <div className="flex min-h-full flex-col bg-slate-50">
@@ -39,12 +38,9 @@ export default async function PublicLayout({ children }: LayoutProps<'/'>) {
               Find us
             </a>
 
-            {staff ? (
+            {viewer?.kind === 'staff' && (
               <>
-                <Link
-                  href="/admin"
-                  className="font-medium text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline"
-                >
+                <Link href="/admin" className="font-medium text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline">
                   Admin
                 </Link>
                 <form action={signOut}>
@@ -54,9 +50,28 @@ export default async function PublicLayout({ children }: LayoutProps<'/'>) {
                   </SubmitButton>
                 </form>
               </>
-            ) : (
-              <Link href="/login" className="text-xs text-slate-400 hover:text-slate-700">
-                Staff
+            )}
+
+            {viewer?.kind === 'customer' && (
+              <>
+                <Link href="/account" className="font-medium text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline">
+                  My bookings
+                </Link>
+                <form action={signOut}>
+                  <input type="hidden" name="to" value="/" />
+                  <SubmitButton tone="secondary" size="sm" pendingLabel="…">
+                    Sign out
+                  </SubmitButton>
+                </form>
+              </>
+            )}
+
+            {!viewer && (
+              <Link
+                href="/login"
+                className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              >
+                Sign in
               </Link>
             )}
           </div>
@@ -76,6 +91,14 @@ export default async function PublicLayout({ children }: LayoutProps<'/'>) {
             >
               <PinIcon />
               Find us on Google
+            </a>
+            <a
+              href={BRAND_LINKS.maps}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            >
+              Google Maps
             </a>
             <a
               href={BRAND_LINKS.directions}

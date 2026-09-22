@@ -21,9 +21,14 @@ describe('safeNextPath', () => {
     expect(safeNextPath('/admin/<script>')).toBe(DEFAULT_AFTER_LOGIN)
   })
 
-  it('rejects paths outside the admin area', () => {
+  it('accepts the customer account area', () => {
+    expect(safeNextPath('/account')).toBe('/account')
+  })
+
+  it('rejects paths outside the admin and account areas', () => {
     expect(safeNextPath('/')).toBe(DEFAULT_AFTER_LOGIN)
     expect(safeNextPath('/adminx')).toBe(DEFAULT_AFTER_LOGIN)
+    expect(safeNextPath('/accounts')).toBe(DEFAULT_AFTER_LOGIN)
     expect(safeNextPath('/book/2026-09-21')).toBe(DEFAULT_AFTER_LOGIN)
   })
 

@@ -8,7 +8,7 @@ import {
   rangeLimitsFrom,
   type Slot,
 } from '@/lib/domain/availability'
-import { bookingMessage, messengerHref } from '@/lib/domain/messenger'
+import { bookingMessage, messengerHref, type MessageCustomer } from '@/lib/domain/messenger'
 import { formatPesoCompact } from '@/lib/domain/money'
 import { displayFor, type CalendarState } from '@/lib/domain/status'
 import { formatHour, formatHourRange, type ManilaDate } from '@/lib/domain/time'
@@ -21,17 +21,24 @@ export interface TimePillsProps {
   /** 0 until the owner sets pricing; the price line is then simply omitted. */
   rateCents: number
   facebookPage: string
+  /** Signed-in customer, so the message can be signed with their name and email. */
+  customer?: MessageCustomer | null
 }
 
 /**
- * Hour pills for one day. Tap a pill for that hour, tap a later one to extend, or
- * press and drag across several. The domain module decides what can be selected,
- * so a range can never straddle a booked hour or break the min/max rules.
+ * Hour pills for one day. Tap a pill for that hour, tap a later one to extend,
+ * or press and drag across several. The domain module decides what can be
+ * selected, so a range can never straddle a booked hour or break the min/max
+ * rules.
  *
- * Nothing is submitted here. The only action is the Messenger button, which is
- * inert until a time is chosen and then opens the chat with the booking typed
- * out. On phones -- where nearly all of this happens -- the button lives in a
- * fixed bar at the bottom so it is always a thumb away.
+ * Taps are plain click events -- the most reliable input on every phone browser.
+ * Drag is layered on with pointer events and deliberately does NOT take pointer
+ * capture: capture stops the click from being generated on some mobile browsers,
+ * and touch pointers are implicitly captured to their first target anyway.
+ *
+ * Nothing is submitted here. The only action is the Messenger button, which
+ * appears inside the summary once a time is chosen and opens the chat with the
+ * booking typed out.
  */
 export function TimePills({
   date,
@@ -40,11 +47,13 @@ export function TimePills({
   maxHours,
   rateCents,
   facebookPage,
+  customer = null,
 }: TimePillsProps) {
   const [start, setStart] = useState<number | null>(null)
   const [end, setEnd] = useState<number | null>(null)
   const gridRef = useRef<HTMLDivElement>(null)
-  const drag = useRef<{ anchor: number; moved: boolean; last: number | null } | null>(null)
+  const drag = useRef<{ anchor: number; moved: boolean; last: number } | null>(null)
+  const swallowNextClick = useRef(false)
 
   const startable = (hour: number) => canStartAt(slots, hour, minHours, maxHours)
 
@@ -64,6 +73,21 @@ export function TimePills({
     setEnd(null)
   }
 
+  /** A tap on a pill. */
+  function tap(hour: number) {
+    if (swallowNextClick.current) {
+      // The click that trails a drag; the drag already set the range.
+      swallowNextClick.current = false
+      return
+    }
+    if (!startable(hour)) return
+    if (start !== null && end !== null) {
+      if (hour === start) return clear()
+      if (hour > start) return selectRange(start, hour) // extend, or shrink back to here
+    }
+    selectRange(hour, hour)
+  }
+
   /** Which pill is under the pointer, if any. Works for mouse and touch alike. */
   function hourAt(x: number, y: number): number | null {
     const el = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-hour]')
@@ -75,7 +99,6 @@ export function TimePills({
     const hour = hourAt(e.clientX, e.clientY)
     if (hour === null || !startable(hour)) return
     drag.current = { anchor: hour, moved: false, last: hour }
-    gridRef.current?.setPointerCapture(e.pointerId)
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
@@ -88,35 +111,29 @@ export function TimePills({
     selectRange(d.anchor, hour)
   }
 
-  function onPointerUp() {
+  function endDrag() {
     const d = drag.current
     drag.current = null
-    if (!d) return
-    if (d.moved) return // the drag already set the range
-
-    // A plain tap.
-    const hour = d.anchor
-    if (start !== null && end !== null) {
-      if (hour === start) return clear()
-      if (hour > start) return selectRange(start, hour) // extend or shrink to here
+    if (d?.moved) {
+      // The browser fires `click` right after `pointerup`; let tap() ignore it,
+      // and clear the flag on the next tick in case no click follows at all.
+      swallowNextClick.current = true
+      setTimeout(() => {
+        swallowNextClick.current = false
+      }, 0)
     }
-    selectRange(hour, hour)
-  }
-
-  function onPointerCancel() {
-    drag.current = null
   }
 
   const ready = start !== null && end !== null
   const hours = ready ? end - start : 0
-  const href = ready ? messengerHref(facebookPage, bookingMessage(date, start, end)) : null
 
   return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="mb-2 text-xs font-semibold tracking-wider text-slate-500">
-          {ready ? 'TAP ANOTHER HOUR TO EXTEND, OR DRAG' : 'TAP OR DRAG YOUR HOURS'}
-        </h2>
+    <div className="space-y-4">
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold text-slate-900">Pick your hours</h2>
+          <p className="text-xs text-slate-500">Tap, tap again to extend, or drag.</p>
+        </div>
 
         <div
           ref={gridRef}
@@ -124,8 +141,9 @@ export function TimePills({
           aria-label="Available hours"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerCancel}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onPointerLeave={endDrag}
           className="grid touch-none select-none grid-cols-3 gap-2 sm:grid-cols-5"
         >
           {slots.map((slot) => (
@@ -135,11 +153,12 @@ export function TimePills({
               selected={ready && slot.hour >= start && slot.hour < end}
               isStart={slot.hour === start}
               startable={slot.state === 'free' && startable(slot.hour)}
+              onTap={() => tap(slot.hour)}
             />
           ))}
         </div>
 
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-slate-500">
           Bookings are {minHours === maxHours ? `${minHours}` : `${minHours}–${maxHours}`} hour
           {maxHours === 1 ? '' : 's'}. Tap your first hour again to clear.
         </p>
@@ -147,7 +166,7 @@ export function TimePills({
 
       <section
         aria-live="polite"
-        className="rounded-lg border border-slate-200 bg-white p-4 text-sm"
+        className="rounded-xl border border-slate-200 bg-white p-4 text-sm"
       >
         {ready ? (
           <>
@@ -166,41 +185,20 @@ export function TimePills({
                 </span>
               </p>
             )}
+            <a
+              href={messengerHref(facebookPage, bookingMessage(date, start, end, customer))}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-[#0084FF] px-4 py-3 text-base font-semibold text-white hover:bg-[#0074e0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0084FF]"
+            >
+              <MessengerIcon />
+              Message us to book {formatHourRange(start, end)}
+            </a>
           </>
         ) : (
           <p className="text-slate-600">Pick your hours above, then message us.</p>
         )}
       </section>
-
-      {/* Fixed thumb bar on phones; inline on wider screens. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-        <div className="mx-auto max-w-5xl">
-          {href ? (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0084FF] px-4 py-3 text-base font-semibold text-white hover:bg-[#0074e0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0084FF]"
-            >
-              <MessengerIcon />
-              Message us to book {formatHourRange(start!, end!)}
-            </a>
-          ) : (
-            <button
-              type="button"
-              disabled
-              aria-disabled="true"
-              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-md bg-slate-200 px-4 py-3 text-base font-semibold text-slate-500"
-            >
-              <MessengerIcon />
-              Pick a time to message us
-            </button>
-          )}
-          <p className="mt-1.5 text-center text-[11px] text-slate-500 md:text-left">
-            Opens Messenger with your booking typed out. We confirm there.
-          </p>
-        </div>
-      </div>
     </div>
   )
 }
@@ -210,11 +208,13 @@ function Pill({
   selected,
   isStart,
   startable,
+  onTap,
 }: {
   slot: Slot
   selected: boolean
   isStart: boolean
   startable: boolean
+  onTap: () => void
 }) {
   const free = slot.state === 'free'
   const display = displayFor(slot.state as CalendarState)
@@ -237,11 +237,12 @@ function Pill({
   return (
     <button
       type="button"
-      data-hour={free && startable ? slot.hour : undefined}
+      data-hour={free ? slot.hour : undefined}
       disabled={!free}
       aria-pressed={selected}
       aria-label={spoken}
       title={free ? undefined : blockerMessage(slot.state)}
+      onClick={onTap}
       className={`flex min-h-12 flex-col items-center justify-center rounded-full border px-3 py-2 text-sm font-semibold leading-tight transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed ${look}`}
     >
       <span>{formatHour(slot.hour).replace(':00', '')}</span>

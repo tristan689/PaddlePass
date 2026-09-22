@@ -104,6 +104,14 @@ export default async function NewBookingPage({ searchParams }: PageProps<'/admin
           </label>
         </div>
 
+        <label className="block">
+          <span className="font-medium text-slate-800">
+            Account email <span className="font-normal text-slate-500">(optional — from their Messenger message)</span>
+          </span>
+          <input name="customer_email" type="email" maxLength={120} autoComplete="off" className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2" />
+          <span className="mt-0.5 block text-xs text-slate-500">Files the booking under their account so it shows in “My bookings”.</span>
+        </label>
+
         {s.paddles_owned > 0 ? (
           <label className="block">
             <span className="font-medium text-slate-800">Paddles to rent</span>

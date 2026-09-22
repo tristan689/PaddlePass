@@ -1,64 +1,173 @@
-import { StatusLegend } from '@/components/calendar/StatusLegend'
+import Link from 'next/link'
+import { TimePills } from '@/components/booking/TimePills'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
-import { DateStrip } from '@/components/calendar/DateStrip'
-import { getMonthAvailability, getStripAvailability } from '@/lib/data/availability'
+import { StatusLegend } from '@/components/calendar/StatusLegend'
+import { pickView, ViewSwitcher } from '@/components/calendar/ViewSwitcher'
+import { WeekView } from '@/components/calendar/WeekView'
+import { FindUs } from '@/components/social/FindUs'
+import { getViewer } from '@/lib/auth/viewer'
+import {
+  getDayAvailability,
+  getMonthAvailability,
+  getStripAvailability,
+} from '@/lib/data/availability'
+import type { PublicSettings } from '@/lib/data/settings'
 import { formatPesoCompact } from '@/lib/domain/money'
-import { formatHour, resolveMonth, todayInManila } from '@/lib/domain/time'
+import {
+  addDays,
+  firstOfMonth,
+  formatDateLong,
+  formatHour,
+  isManilaDate,
+  monthOf,
+  resolveMonth,
+  todayInManila,
+  weekdayOf,
+  type ManilaDate,
+} from '@/lib/domain/time'
 
 /**
  * The public booking calendar — what a Facebook link opens.
  *
- * View-only by design: it shows WHEN the court is free. A tap on an open day goes
- * to that day's time picker, and from there a single button drops the customer
- * into Messenger with the booking already typed. No form, no account.
+ * One page, three views, all in the URL: ?view=day|week|month with an anchor
+ * date. View-only by design: it shows WHEN the court is free, and once hours are
+ * picked a single button drops the customer into Messenger with the booking
+ * already typed. No form.
  *
- * A Server Component that fetches availability server-side, so the browser is
- * never handed a Supabase key and never receives a row the availability
- * projection did not deliberately expose. Never cached: a stale "open" day that
- * turns out to be full is the worst failure mode this page has.
+ * A Server Component: availability is fetched server-side so the browser never
+ * sees a Supabase key or a customer name. Never cached -- a stale "open" hour
+ * quoted to staff is the worst failure mode this page has.
  */
 export const dynamic = 'force-dynamic'
 
 export default async function CalendarPage({ searchParams }: PageProps<'/'>) {
   const params = await searchParams
-  const monthParam = typeof params.m === 'string' ? params.m : undefined
-  const month = resolveMonth(monthParam)
+  const view = pickView(params.view)
+  const today = todayInManila()
 
-  const [{ days, settings }, strip] = await Promise.all([
-    getMonthAvailability(month),
-    getStripAvailability(todayInManila(), 21),
-  ])
+  const requested = typeof params.d === 'string' ? params.d : ''
+  const anchor: ManilaDate = isManilaDate(requested) ? requested : today
+  const month = resolveMonth(
+    typeof params.m === 'string' ? params.m : view === 'month' ? undefined : monthOf(anchor)
+  )
+  // Switching from Month back to Day/Week should land somewhere in that month.
+  const switcherAnchor = view === 'month' ? (monthOf(today) === month ? today : firstOfMonth(month)) : anchor
+
+  const viewer = await getViewer()
+  const customer = viewer?.kind === 'customer' ? { name: viewer.name, email: viewer.email } : null
+
+  let settings: PublicSettings
+  let body: React.ReactNode
+
+  if (view === 'day') {
+    const result = await getDayAvailability(anchor)
+    settings = result.settings
+    body = (
+      <DayView
+        date={anchor}
+        today={today}
+        day={result.day}
+        settings={settings}
+        customer={customer}
+      />
+    )
+  } else if (view === 'month') {
+    const result = await getMonthAvailability(month)
+    settings = result.settings
+    body = <MonthGrid month={month} days={result.days} />
+  } else {
+    const weekStart = addDays(anchor, -weekdayOf(anchor))
+    const result = await getStripAvailability(weekStart, 7)
+    settings = result.settings
+    body = <WeekView days={result.days} today={today} />
+  }
 
   return (
     <div className="space-y-6">
-      <section>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">Book the court</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          {settings.isConfigured && <>{formatPesoCompact(settings.rateCents)}/hour · </>}
-          Open {formatHour(settings.openHour)} – {formatHour(settings.closeHour)}
-        </p>
-        <p className="mt-2 text-sm text-slate-700">
-          Tap a day, pick your time, and message us on Messenger to book.
-        </p>
+      <section className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Book the court</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            {settings.isConfigured && <>{formatPesoCompact(settings.rateCents)}/hour · </>}
+            Open {formatHour(settings.openHour)} – {formatHour(settings.closeHour)}
+          </p>
+        </div>
+        <ViewSwitcher view={view} anchor={switcherAnchor} month={month} />
       </section>
 
-      {/* Mobile: filmstrip of the next three weeks. */}
-      <section className="md:hidden">
-        <h2 className="mb-2 text-xs font-semibold tracking-wider text-slate-500">
-          PICK A DATE
+      {body}
+
+      <StatusLegend />
+
+      <FindUs />
+    </div>
+  )
+}
+
+/** The Day view: date navigation plus the hour pills, or a plain reason there are none. */
+function DayView({
+  date,
+  today,
+  day,
+  settings,
+  customer,
+}: {
+  date: ManilaDate
+  today: ManilaDate
+  day: Awaited<ReturnType<typeof getDayAvailability>>['day']
+  settings: PublicSettings
+  customer: { name: string; email: string } | null
+}) {
+  const nav = 'rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900'
+
+  return (
+    <section aria-label={formatDateLong(date)} className="space-y-4">
+      <header className="flex items-center justify-between">
+        <Link
+          href={`/?view=day&d=${addDays(date, -1)}`}
+          rel="prev"
+          aria-disabled={date <= today || undefined}
+          className={`${nav} ${date <= today ? 'pointer-events-none opacity-30' : ''}`}
+        >
+          <span aria-hidden="true">‹</span>
+          <span className="sr-only">Previous day</span>
+        </Link>
+        <h2 className="text-center text-sm font-semibold tracking-widest text-slate-900">
+          {formatDateLong(date).toUpperCase()}
+          {date === today && <span className="ml-2 font-normal text-slate-500">TODAY</span>}
         </h2>
-        <DateStrip days={strip.days} />
-      </section>
+        <Link href={`/?view=day&d=${addDays(date, 1)}`} rel="next" className={nav}>
+          <span aria-hidden="true">›</span>
+          <span className="sr-only">Next day</span>
+        </Link>
+      </header>
 
-      {/* Desktop: the full month. */}
-      <MonthGrid month={month} days={days} className="hidden md:block" />
+      {date < today ? (
+        <Notice title="That date has passed.">Pick an upcoming day from the Week or Month view.</Notice>
+      ) : day.closed ? (
+        <Notice title={day.closedReason ?? 'Closed'}>The court is not open on this date.</Notice>
+      ) : day.freeHoursCount === 0 ? (
+        <Notice title="Fully booked.">Every hour on this day is taken or has passed.</Notice>
+      ) : (
+        <TimePills
+          date={date}
+          slots={day.slots}
+          minHours={settings.minHours}
+          maxHours={settings.maxHours}
+          rateCents={settings.rateCents}
+          facebookPage={settings.facebookPage}
+          customer={customer}
+        />
+      )}
+    </section>
+  )
+}
 
-      <StatusLegend className="pt-1" />
-
-      <p className="text-xs leading-relaxed text-slate-500">
-        Grey is being booked, yellow is reserved, green is booked. We confirm on Messenger
-        and lock your slot in once the downpayment is in.
-      </p>
+function Notice({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div role="status" className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+      <p className="font-semibold">{title}</p>
+      <p className="mt-1">{children}</p>
     </div>
   )
 }

@@ -31,5 +31,14 @@ describe('bookingMessage', () => {
     const text = bookingMessage(toManilaDate('2026-09-28'), 23, 24)
     expect(text).toContain('11:00 PM – 12:00 AM')
     expect(text).toContain('(1 hour)')
+    expect(text).not.toContain('—\n')
+  })
+
+  it('signs the message for a signed-in customer', () => {
+    const text = bookingMessage(toManilaDate('2026-09-28'), 15, 16, {
+      name: 'Juan dela Cruz',
+      email: 'juan@example.com',
+    })
+    expect(text.endsWith('— Juan dela Cruz (juan@example.com)')).toBe(true)
   })
 })

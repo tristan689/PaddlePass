@@ -28,6 +28,8 @@ export interface BookingRow {
   contact: string
   facebook_name: string
   customer_note: string | null
+  /** Account email, when staff know it. Links the booking to /account. */
+  customer_email: string | null
   paddle_count: number
   rate_cents: number
   paddle_fee_cents: number

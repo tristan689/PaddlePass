@@ -4,11 +4,14 @@ Court booking for **Undefeated Pickleball** (Undefeated Fitness Center, Manila).
 
 **The flow**
 
-1. **Public calendar** (`/`) shows which hours are open. Tap a day → `/book/<date>` → tap
-   or drag the hour pills (3 PM … 11 PM) → the **Messenger** button wakes up and opens
-   `m.me/<page>` with "I'm booking the court on <date>, <hours>…" already typed. That's the
-   whole public side — no form, no account. Grey = being booked, **yellow = reserved**
-   (confirmed, no downpayment yet), **green = booked** (downpayment or paid).
+1. **Public calendar** (`/`) with **Day / Week / Month** views (`?view=`; Week is the
+   default). Pick a day → tap or drag the hour pills (3 PM … 11 PM) → a **Messenger**
+   button appears and opens `m.me/<page>` with "I'm booking the court on <date>,
+   <hours>…" already typed. Grey = being booked, **yellow = reserved** (confirmed, no
+   downpayment yet), **green = booked** (downpayment or paid). A "Find us" section embeds
+   the map with directions / Google Maps / Business Profile links.
+   Players can optionally **sign in with Google**; their message is then signed with their
+   name and email, and `/account` lists the bookings staff have filed under that email.
 2. **Staff** agree the booking in the chat, sign in at `/login` (username + password), and
    record it in the **admin**: new booking → record the GCash/cash payment → copy the
    customer's status link into the chat. Reschedules, arrivals, no-shows and the logbook
@@ -73,6 +76,23 @@ Further staff are invited from **Staff** in the admin (real email → they set a
 from the link), or created with the same script. Owners can change settings and manage
 the roster; staff can take bookings and payments.
 
+Only users created **with a `role` in their metadata** (invites, the script) become
+staff. A user added from the Supabase dashboard without metadata, or anyone who signs in
+with Google, is a customer — by design, since customers can now sign in.
+
+### 3b. Customer sign-in (Google)
+
+1. Google Cloud Console → *APIs & Services → Credentials → Create OAuth client ID* (Web
+   application). Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. Supabase → *Authentication → Providers → Google*: enable, paste the Client ID and
+   Secret.
+3. Supabase → *Authentication → URL Configuration*: Redirect URLs must include
+   `http://localhost:3000/auth/confirm` and `https://<your-domain>/auth/confirm`.
+
+Until the provider is enabled, the "Continue with Google" button explains that sign-in
+is not switched on yet. Staff link a booking to a customer by entering the email from
+the customer's Messenger message in **New booking → Account email**.
+
 > Username-only accounts have no inbox, so "Forgot password" can't reach them. An owner
 > resets them by running the script again after deleting the user in the dashboard, or by
 > setting a new password in *Authentication → Users*.
@@ -112,21 +132,24 @@ and get preview deployments.
 ```
 src/
   app/
-    (public)/            calendar, /book/[date] hour pills → Messenger, /r/[reference] status page
-    login/               staff sign-in (username or email) + forgot password
+    (public)/            calendar (Day/Week/Month, hour pills → Messenger), /account (customer's
+                         bookings), /r/[reference] status page; /book/[date] redirects to the Day view
+    login/               Google for players; username or email + password for staff
     auth/confirm/        where invite & reset emails land
     admin/               layout gate + pages; each area's actions.ts holds its Server Actions
       bookings/new       staff-entered booking (create_staff_booking RPC)
     api/logbook.csv/     CSV export, same filters as the logbook page
     api/cron/expire-holds/  secret-guarded fallback sweep
-  components/            calendar (SVG, zero JS), booking/TimePills (the one client piece on
-                         the public side), social (footer icons), admin, auth, ui
+  components/            calendar (ViewSwitcher, WeekView, MonthGrid — zero JS), booking/TimePills
+                         (the one client piece on the public side), social (FindUs map, icons),
+                         auth (GoogleSignIn, LoginForm), admin, ui
   lib/
     domain/              PURE, unit-tested: Manila time, centavo money, pricing, availability,
                          status wording, reference codes, error-code → sentence, CSV, m.me links,
                          brand links (Facebook / Instagram / TikTok / Google Business Profile)
     data/                server-only reads through the SSR client (RLS applies)
-    auth/                requireStaff / requireOwner, sign-in actions, username mapping, safe redirect
+    auth/                requireStaff / requireOwner, getViewer (staff | customer | nobody),
+                         sign-in actions, username mapping, safe redirect
     supabase/            server / browser / admin clients, env
   proxy.ts               session refresh + /admin redirect (UX only — not the security boundary).
                          Must live in src/ — at the project root Next ignores it.
@@ -152,9 +175,9 @@ supabase/migrations/     the schema, in order; every rule is commented where it 
 
 Live against Supabase project `ilpikehoeufqqelzxelq` with the admin account created and
 hours set to 3 PM – midnight. Hourly rate is still ₱0 — set it in Settings before taking
-money (the day page hides the price line until then). Not built: customer accounts (not
-needed for the Messenger flow), marking a booking `completed` (no RPC yet), partial-day
-closures, a second court. The earlier self-serve request form (`create_booking` from the
+money (the Day view hides the price line until then). Customer accounts are built but
+need the Google provider switched on (3b). Not built: marking a booking `completed` (no
+RPC yet), partial-day closures, a second court. The earlier self-serve request form (`create_booking` from the
 browser) is in git history at commit `6d6f073` if it is ever wanted back; the RPC itself
 is still in the database.
 

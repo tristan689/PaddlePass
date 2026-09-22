@@ -6,10 +6,10 @@ import { AvailabilityBar, availabilityCaption } from './AvailabilityBar'
 /**
  * Desktop month calendar.
  *
- * A Server Component: month navigation is a <Link> to ?m=YYYY-MM and picking a day
- * is a <Link> to /book/<date>, where the hours are chosen and Messenger opens. The
- * grid ships zero JavaScript, every view is a real URL, and the back button
- * behaves -- which matters inside the Facebook in-app browser.
+ * A Server Component: month navigation is a <Link> to ?view=month&m=YYYY-MM and
+ * picking a day is a <Link> to the Day view, where the hours are chosen and
+ * Messenger opens. The grid ships zero JavaScript, every view is a real URL, and
+ * the back button behaves -- which matters inside the Facebook in-app browser.
  */
 export function MonthGrid({
   month,
@@ -27,7 +27,7 @@ export function MonthGrid({
     <section className={className} aria-label={`Availability for ${formatMonthLong(month)}`}>
       <header className="mb-3 flex items-center justify-between">
         <Link
-          href={`/?m=${addMonths(month, -1)}`}
+          href={`/?view=month&m=${addMonths(month, -1)}`}
           className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           rel="prev"
         >
@@ -40,7 +40,7 @@ export function MonthGrid({
         </h2>
 
         <Link
-          href={`/?m=${addMonths(month, 1)}`}
+          href={`/?view=month&m=${addMonths(month, 1)}`}
           className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           rel="next"
         >
@@ -110,7 +110,7 @@ function DayCell({ day }: { day: DayAvailability }) {
 
   return (
     <Link
-      href={`/book/${day.date}`}
+      href={`/?view=day&d=${day.date}`}
       className="flex min-h-24 flex-col items-center bg-white p-2 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-slate-900"
     >
       {inner}

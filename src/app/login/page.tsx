@@ -1,72 +1,62 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { GoogleSignIn } from '@/components/auth/GoogleSignIn'
 import { LoginForm } from '@/components/auth/LoginForm'
-import { SubmitButton } from '@/components/ui/SubmitButton'
-import { signOut } from '@/lib/auth/actions'
 import { safeNextPath } from '@/lib/auth/redirect'
-import { getStaff } from '@/lib/auth/require-staff'
-import { createClient } from '@/lib/supabase/server'
+import { getViewer } from '@/lib/auth/viewer'
 
-export const metadata: Metadata = { title: 'Staff sign in — PaddlePass' }
+export const metadata: Metadata = { title: 'Sign in — Undefeated Pickleball' }
 export const dynamic = 'force-dynamic'
 
 /**
- * Staff sign-in.
- *
- * Three states, decided here rather than in the proxy so they cannot loop:
- *   - not signed in            -> the form
- *   - signed in, active staff  -> straight to where they were going
- *   - signed in, NOT staff     -> say so, offer sign-out
+ * One door, two kinds of people. Customers continue with Google and land on their
+ * bookings; staff use a username and password and land in the admin. Anyone
+ * already signed in is sent straight on.
  */
 export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
   const params = await searchParams
   const next = safeNextPath(params.next)
   const linkError = params.error === 'link'
 
-  const supabase = await createClient()
-  const { data } = await supabase.auth.getClaims()
-  const signedIn = Boolean(data?.claims?.sub)
-
-  if (signedIn) {
-    const staff = await getStaff()
-    if (staff) redirect(next)
-  }
+  const viewer = await getViewer()
+  if (viewer?.kind === 'staff') redirect(next.startsWith('/admin') ? next : '/admin')
+  if (viewer?.kind === 'customer') redirect('/account')
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-slate-50 px-4 py-12">
+    <main className="flex flex-1 items-start justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-6">
         <header className="text-center">
-          <p className="text-sm font-bold tracking-tight text-slate-900">
-            UNDEFEATED <span className="font-normal text-slate-500">Pickleball · Staff</span>
-          </p>
+          <Link href="/" className="text-sm font-bold tracking-tight text-slate-900">
+            UNDEFEATED <span className="font-normal text-slate-500">Pickleball</span>
+          </Link>
         </header>
 
-        {signedIn ? <NotStaff /> : <LoginForm next={next} linkError={linkError} />}
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <h1 className="text-lg font-bold tracking-tight text-slate-900">Players</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Sign in to keep your bookings in one place. We only use your name and email.
+          </p>
+          <div className="mt-4">
+            <GoogleSignIn next="/account" />
+          </div>
+        </section>
+
+        <details className="group rounded-lg border border-slate-200 bg-white shadow-sm" open={next.startsWith('/admin')}>
+          <summary className="cursor-pointer list-none px-6 py-4 text-sm font-semibold text-slate-700 group-open:border-b group-open:border-slate-200">
+            Staff sign in
+          </summary>
+          <div className="p-6 pt-4">
+            <LoginForm next={next} linkError={linkError} />
+          </div>
+        </details>
 
         <p className="text-center text-xs text-slate-500">
           <Link href="/" className="underline">
-            ‹ Public calendar
+            ‹ Back to the calendar
           </Link>
         </p>
       </div>
     </main>
-  )
-}
-
-function NotStaff() {
-  return (
-    <div className="rounded-lg border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
-      <p className="font-semibold">This account is not on the staff roster.</p>
-      <p className="mt-1">
-        You are signed in, but the owner has not added you as active staff — or has
-        deactivated you. Ask them to check the Staff page, then sign in again.
-      </p>
-      <form action={signOut} className="mt-4">
-        <SubmitButton tone="secondary" pendingLabel="Signing out…">
-          Sign out
-        </SubmitButton>
-      </form>
-    </div>
   )
 }

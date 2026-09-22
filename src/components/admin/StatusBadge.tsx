@@ -23,7 +23,6 @@ export function StatusBadge({ status, className = '' }: { status: BookingStatus;
     <span
       className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium ${look} ${className}`}
     >
-      {display && <span aria-hidden="true">{display.glyph}</span>}
       {adminLabelFor(status)}
     </span>
   )

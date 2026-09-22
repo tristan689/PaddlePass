@@ -205,6 +205,7 @@ const staffBooking = z.object({
   contact: z.string().trim().max(40),
   facebook_name: z.string().trim().max(80),
   note: z.string().trim().max(500),
+  customer_email: z.union([z.literal(''), z.email('That does not look like an email address.')]),
 })
 
 /** Creates the booking already approved and lands on its detail page. */
@@ -219,6 +220,7 @@ export async function createStaffBooking(_prev: ActionState, formData: FormData)
     contact: field(formData, 'contact'),
     facebook_name: field(formData, 'facebook_name'),
     note: field(formData, 'note'),
+    customer_email: field(formData, 'customer_email').toLowerCase(),
   })
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Check the booking details.' }
@@ -236,6 +238,7 @@ export async function createStaffBooking(_prev: ActionState, formData: FormData)
     p_contact: b.contact,
     p_facebook_name: b.facebook_name,
     p_note: b.note || null,
+    p_customer_email: b.customer_email || null,
   })
 
   if (error) {

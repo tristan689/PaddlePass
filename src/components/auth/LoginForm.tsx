@@ -11,9 +11,7 @@ export function LoginForm({ next, linkError }: { next: string; linkError: boolea
   const [resetState, resetAction] = useActionState(requestPasswordReset, EMPTY)
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-lg font-bold tracking-tight text-slate-900">Sign in</h1>
-
+    <div>
       {linkError && (
         <p
           role="alert"
@@ -23,7 +21,7 @@ export function LoginForm({ next, linkError }: { next: string; linkError: boolea
         </p>
       )}
 
-      <form action={action} className="mt-4 space-y-3">
+      <form action={action} className="space-y-3">
         <input type="hidden" name="next" value={next} />
 
         <label className="block">

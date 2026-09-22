@@ -2,24 +2,29 @@ import { displayFor, LEGEND_STATES } from '@/lib/domain/status'
 import { StatusDot } from './StatusDot'
 
 /**
- * The key to the calendar.
+ * The key to the calendar, as a row of chips.
  *
- * Not decoration: with five states in play, a customer cannot infer that amber
- * means "someone paid a downpayment" from the colour alone. Spelling it out is
- * also what keeps the colour coding from being the only carrier of meaning.
+ * Not decoration: with five states in play, a customer cannot infer that yellow
+ * means "reserved, downpayment still to come" from the colour alone. Each chip
+ * carries the swatch, the word, and the full sentence for hover and screen readers.
  */
 export function StatusLegend({ className = '' }: { className?: string }) {
   return (
-    <ul
-      className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600 ${className}`}
-      aria-label="What the colours mean"
-    >
-      {LEGEND_STATES.map((state) => (
-        <li key={state} className="flex items-center gap-1.5">
-          <StatusDot state={state} size="sm" />
-          <span>{displayFor(state).label}</span>
-        </li>
-      ))}
+    <ul className={`flex flex-wrap gap-2 ${className}`} aria-label="What the colours mean">
+      {LEGEND_STATES.map((state) => {
+        const display = displayFor(state)
+        return (
+          <li
+            key={state}
+            title={display.description}
+            aria-label={display.description}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
+          >
+            <StatusDot state={state} size="sm" describe={false} />
+            {display.label}
+          </li>
+        )
+      })}
     </ul>
   )
 }
